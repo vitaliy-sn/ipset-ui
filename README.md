@@ -2,6 +2,8 @@
 
 **ipset-ui** is a web interface for managing IP sets (ipset) on a server. The project consists of a Go backend service and a Vue 3 frontend application.
 
+![ipset-ui screenshot](screenshot.png)
+
 ## Features
 
 - View, create, and delete ipset sets
