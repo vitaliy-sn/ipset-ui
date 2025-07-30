@@ -1,0 +1,17 @@
+---
+services:
+  ipset-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ipset-ui
+    environment:
+      - STATIC_DIR=/app/static
+      - IPSET_BACKUP_DIR=/backups
+      - APP_PORT=8082
+      # - FRONTEND_URL=http://localhost:5173
+    volumes:
+      - /storage/storage/docker-volumes/ipset-ui:/backups
+    network_mode: host
+    privileged: true
+    restart: unless-stopped

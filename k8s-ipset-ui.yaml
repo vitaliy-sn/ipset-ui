@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ipset-ui
+spec:
+  selector:
+    matchLabels:
+      app: ipset-ui
+  template:
+    metadata:
+      labels:
+        app: ipset-ui
+    spec:
+      terminationGracePeriodSeconds: 5
+      hostNetwork: true
+      containers:
+        - name: ipset-ui
+          image: ixdx/ipset-ui:2025_07_30
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 8084
+              protocol: TCP
+              hostPort: 8084
+          env:
+            - name: APP_PORT
+              value: "8084"
+            - name: IPSET_BACKUP_DIR
+              value: "/backups"
+            - name: STATIC_DIR
+              value: "/app/static"
+          volumeMounts:
+            - mountPath: /backups
+              name: backups
+              readOnly: false
+      volumes:
+        - name: backups
+          hostPath:
+            path: /data/ipset-ui
+            type: Directory
+      nodeSelector:
+        kubernetes.io/hostname: nas
