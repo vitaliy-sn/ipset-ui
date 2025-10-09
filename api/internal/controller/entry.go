@@ -24,7 +24,7 @@ func (c *IPSetController) AddEntry(ctx *gin.Context) {
 
 	if err := c.ipset.AddEntry(setName, req.Entry, req.Comment); err != nil {
 		if strings.Contains(err.Error(), "entry not added") {
-			ctx.JSON(http.StatusConflict, gin.H{"error": "Entry already exists or not added"})
+			ctx.JSON(http.StatusConflict, gin.H{"error": "Entry already exists or not added. " + err.Error()})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
