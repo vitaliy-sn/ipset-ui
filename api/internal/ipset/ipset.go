@@ -141,8 +141,7 @@ func (i *IPSet) AddEntries(setName string, entries []string, comment string) (in
 	return added, nil
 }
 
-func (i *IPSet) SaveSet(setName, fileNamePart string) error {
-	fileName := fmt.Sprintf("%s-%s.save", setName, fileNamePart)
+func (i *IPSet) SaveSet(setName, fileName string) error {
 	filePath := filepath.Join(config.AppConfig.IpsetBackupDir, fileName)
 	cmd := exec.Command("ipset", "save", setName, "-f", filePath)
 	return cmd.Run()
@@ -163,7 +162,7 @@ func (i *IPSet) RestoreSet(setName, fileNamePart string) error {
 }
 
 func (i *IPSet) ListBackupFiles(setName string) ([]string, error) {
-	pattern := fmt.Sprintf("%s-*.save", setName)
+	pattern := fmt.Sprintf("%s*.save", setName)
 	files, err := filepath.Glob(filepath.Join(config.AppConfig.IpsetBackupDir, pattern))
 	if err != nil {
 		return nil, err

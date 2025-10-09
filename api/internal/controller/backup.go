@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +32,13 @@ func (c *IPSetController) SaveSet(ctx *gin.Context) {
 		return
 	}
 
-	err := c.ipset.SaveSet(req.SetName, req.FileNamePart)
+	backupFileName := fmt.Sprintf("%s-%s.save", req.SetName, req.FileNamePart)
+
+	if strings.HasSuffix(req.FileNamePart, ".save") {
+		backupFileName = req.FileNamePart
+	}
+
+	err := c.ipset.SaveSet(req.SetName, backupFileName)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
