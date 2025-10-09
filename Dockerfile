@@ -1,4 +1,4 @@
-# ixdx/ipset-ui:2025_07_30
+# ixdx/ipset-ui:latest
 
 # Frontend builder
 

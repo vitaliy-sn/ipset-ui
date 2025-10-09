@@ -11,7 +11,7 @@ services:
       - APP_PORT=8082
       # - FRONTEND_URL=http://localhost:5173
     volumes:
-      - /storage/storage/docker-volumes/ipset-ui:/backups
+      - /opt/ipset-ui:/backups
     network_mode: host
     privileged: true
     restart: unless-stopped
