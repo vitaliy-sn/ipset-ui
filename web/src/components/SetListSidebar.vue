@@ -1,6 +1,6 @@
 <template>
   <div class="sidebar">
-    <h3>IP sets</h3>
+    <h3>ipset list</h3>
     <ul class="set-list">
       <li
         v-for="(set, index) in ipSets"
@@ -20,7 +20,7 @@
 
 <script>
 export default {
-  name: 'HomeSetList',
+  name: 'SetListSidebar',
   props: {
     ipSets: {
       type: Array,
@@ -42,11 +42,10 @@ export default {
 <style scoped>
 .sidebar {
   width: 200px;
-  margin-right: 20px;
   padding: 15px;
   border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #0000000f;
   background-color: #ffffff;
 }
 

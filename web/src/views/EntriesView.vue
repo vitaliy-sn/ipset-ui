@@ -1,7 +1,16 @@
 <template>
   <div class="main-container">
+    <div class="header-wrapper">
+      <div class="header-container">
+        <AppTabs />
+      </div>
+    </div>
     <div class="content-wrapper">
-      <HomeSetList :ipSets="ipSetStore.ipSets" :selectedSet="selectedSet" @select-set="selectSet" />
+      <SetListSidebar
+        :ipSets="ipSetStore.ipSets"
+        :selectedSet="selectedSet"
+        @select-set="selectSet"
+      />
       <EntryList
         :selectedSet="selectedSet"
         :ipEntries="ipSetStore.ipEntries"
@@ -13,7 +22,6 @@
         <AddEntry :selectedSet="selectedSet" @check-ip="checkIp" />
       </div>
     </div>
-    <button class="floating-button" @click="goToSets">Manage IP Sets</button>
   </div>
 </template>
 
@@ -22,18 +30,21 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIpSetStore } from '../stores/ipsetStore'
 import AddEntry from '../components/AddEntry.vue'
-import HomeSetList from '../components/HomeSetList.vue'
+import SetListSidebar from '../components/SetListSidebar.vue'
 import EntryList from '../components/EntryList.vue'
+import AppTabs from '../components/AppTabs.vue'
 
 export default {
   components: {
     AddEntry,
-    HomeSetList,
+    SetListSidebar,
     EntryList,
+    AppTabs,
   },
   setup() {
     const ipSetStore = useIpSetStore()
     const selectedSet = ref('')
+
     const router = useRouter()
 
     const searchIpSet = (filter = '') => {
@@ -77,8 +88,8 @@ export default {
     })
 
     return {
-      selectedSet,
       ipSetStore,
+      selectedSet,
       searchIpSet,
       deleteEntry,
       selectSet,
@@ -90,39 +101,9 @@ export default {
 </script>
 
 <style scoped>
-.main-container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
-}
-
-.content-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
+@import '../assets/common.css';
 
 .add-entry-container {
-  margin-left: 20px;
   width: 360px;
-}
-
-.floating-button {
-  position: fixed;
-  top: 10px;
-  right: 20px;
-  padding: 10px 20px;
-  border-radius: 4px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s;
-}
-
-.floating-button:hover {
-  background-color: #218838;
 }
 </style>

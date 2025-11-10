@@ -22,9 +22,9 @@ func (c *IPSetController) AddEntry(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.ipset.AddEntry(setName, req.Entry, req.Comment); err != nil {
+	if _, err := ipset.AddEntries(setName, []string{req.Entry}, req.Comment); err != nil {
 		if strings.Contains(err.Error(), "entry not added") {
-			ctx.JSON(http.StatusConflict, gin.H{"error": "Entry already exists or not added"})
+			ctx.JSON(http.StatusConflict, gin.H{"error": "Entry already exists or not added. " + err.Error()})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -45,7 +45,7 @@ func (c *IPSetController) DeleteEntry(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.ipset.DeleteEntry(setName, req.Entry); err != nil {
+	if err := ipset.DeleteEntry(setName, req.Entry); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -77,7 +77,7 @@ func (c *IPSetController) ImportEntries(ctx *gin.Context) {
 		return
 	}
 
-	added, err := c.ipset.AddEntries(setName, entries, comment)
+	added, err := ipset.AddEntries(setName, entries, comment)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Import from '%s' failed: %s", header.Filename, err.Error()),
@@ -101,7 +101,7 @@ func (c *IPSetController) GetEntries(ctx *gin.Context) {
 		return
 	}
 
-	entries, err := c.ipset.ListEntries(setName)
+	entries, err := ipset.ListEntries(setName)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

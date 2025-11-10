@@ -8,11 +8,4 @@ export default {
 }
 </script>
 
-<style>
-body {
-  font-family: 'Roboto', Arial, sans-serif;
-  background-color: #f8f9fa;
-  margin: 0;
-  padding: 0;
-}
-</style>
+<style></style>

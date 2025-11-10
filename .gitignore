@@ -1,3 +1,5 @@
-ST_*
-AI-*
-copy-files-to-nas.sh
+/ipset-ui
+/internal/static/dist/
+firewall*.txt*
+/test-app-dir/
+*.log

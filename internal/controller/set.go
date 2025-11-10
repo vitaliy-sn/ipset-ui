@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"ipset-ui/internal/ipset"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,17 +17,7 @@ func (c *IPSetController) CreateSet(ctx *gin.Context) {
 		return
 	}
 
-	exists, err := c.ipset.SetExists(req.SetName)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "set already exists"})
-		return
-	}
-
-	if err := c.ipset.CreateSet(req.SetName); err != nil {
+	if err := ipset.Create(req.SetName); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -34,21 +25,11 @@ func (c *IPSetController) CreateSet(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Set created"})
 }
 
-// DeleteSet handles the deletion of a set.
-func (c *IPSetController) DeleteSet(ctx *gin.Context) {
+// DestroySet handles the deletion of a set.
+func (c *IPSetController) DestroySet(ctx *gin.Context) {
 	setName := ctx.Param("setName")
 
-	exists, err := c.ipset.SetExists(setName)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if !exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "set does not exist"})
-		return
-	}
-
-	if err := c.ipset.DeleteSet(setName); err != nil {
+	if err := ipset.Destroy(setName); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -58,7 +39,7 @@ func (c *IPSetController) DeleteSet(ctx *gin.Context) {
 
 // GetSets handles listing all sets.
 func (c *IPSetController) GetSets(ctx *gin.Context) {
-	sets, err := c.ipset.ListSets()
+	sets, err := ipset.List()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

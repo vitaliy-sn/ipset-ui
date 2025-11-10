@@ -43,7 +43,7 @@
       />
     </div>
     <div v-else-if="activeTab === 'import'">
-      <h3>Import</h3>
+      <h3>Import from file</h3>
       <div class="input-group">
         <div
           class="custom-file-input"
@@ -289,8 +289,8 @@ export default {
 .add-entry {
   padding: 20px;
   border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #0000000f;
   background-color: #ffffff;
 }
 
@@ -333,7 +333,7 @@ input[type='file'] {
   margin-right: 0;
   width: 100%;
   cursor: pointer;
-  color: #888;
+  color: #333;
   transition: border-color 0.2s;
   user-select: none;
   box-sizing: border-box;
@@ -344,13 +344,16 @@ input[type='file'] {
 }
 .custom-file-input.disabled {
   background-color: #f5f5f5;
-  color: #bbb;
+  color: #333;
+  opacity: 0.6;
   cursor: not-allowed;
   border-color: #eee;
 }
 
 button[disabled] {
-  background: #ccc !important;
+  background: #eee !important;
+  color: #888 !important;
+  opacity: 0.7;
   cursor: not-allowed !important;
 }
 
