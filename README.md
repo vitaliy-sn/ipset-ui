@@ -26,6 +26,7 @@ You can import a list of CIDR or IP addresses from a file (for example, exported
 
 ```
 make build
+sudo ./ipset-ui
 ```
 
 ### Docker
