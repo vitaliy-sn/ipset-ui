@@ -7,7 +7,7 @@
     <div class="results">
       <div v-if="ipSetStore.ipSets.length === 0">No sets available.</div>
       <div v-else>
-        <div v-for="(set, index) in ipSetStore.ipSets" :key="set" class="entry">
+        <div v-for="set in ipSetStore.ipSets" :key="set" class="entry">
           <span>{{ set }}</span>
           <div class="buttons">
             <button class="backups" @click="toggleBackup(set)">backups</button>
@@ -16,11 +16,15 @@
         </div>
       </div>
     </div>
-    <DeleteConfirmationModal
-      :isVisible="isDeleteModalVisible"
-      :entry="setToDelete"
-      @close="isDeleteModalVisible = false"
-      @confirm="deleteSetConfirmed"
+    <ConfirmModal
+      :visible="isDeleteModalVisible"
+      :message="`Are you sure you want to delete ${setToDelete}?`"
+      :onConfirm="deleteSetConfirmed"
+      :onCancel="
+        () => {
+          isDeleteModalVisible = false
+        }
+      "
     />
     <Notification
       v-if="notificationMessage"
@@ -33,12 +37,12 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useIpSetStore } from '../stores/ipsetStore'
-import DeleteConfirmationModal from './DeleteConfirmationModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 import Notification from './Notification.vue'
 
 export default {
   components: {
-    DeleteConfirmationModal,
+    ConfirmModal,
     Notification,
   },
   setup(_, { emit }) {
@@ -55,7 +59,7 @@ export default {
           await ipSetStore.addSet(newSetName.value.trim())
           newSetName.value = ''
           showNotification('Set added successfully', 'success')
-        } catch (error) {
+        } catch {
           showNotification('Failed to add set', 'error')
         }
       }
@@ -70,8 +74,8 @@ export default {
       try {
         await ipSetStore.deleteSet(setToDelete.value)
         showNotification('Set deleted successfully', 'success')
-      } catch (error) {
-        const msg = error?.response?.data?.error || error.message || 'Failed to delete set'
+      } catch (e) {
+        const msg = e?.response?.data?.error || e.message || 'Failed to delete set'
         showNotification(msg, 'error')
       } finally {
         isDeleteModalVisible.value = false
@@ -115,8 +119,8 @@ export default {
   width: 400px;
   padding: 20px;
   border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #0000000f;
   background-color: #ffffff;
 }
 

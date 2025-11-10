@@ -11,7 +11,7 @@
     </div>
     <div class="results">
       <div v-if="ipEntries.length === 0">
-        {{ errorMessage || 'Not Found' }}
+        {{ errorMessage || 'Entries Not Found' }}
       </div>
       <div v-else>
         <div v-for="(entry, index) in ipEntries" :key="index" class="entry">
@@ -22,7 +22,7 @@
             </template>
           </span>
           <div class="buttons">
-            <button class="whois" @click="whois(entry.Entry)">whois</button>
+            <button class="whois" @click="confirmWhois(entry.Entry)">whois</button>
             <button class="delete" @click="confirmDelete(entry.Entry)">delete</button>
           </div>
         </div>
@@ -33,11 +33,21 @@
       :whoisData="whoisData"
       @close="isWhoisModalVisible = false"
     />
-    <DeleteConfirmationModal
-      :isVisible="isDeleteModalVisible"
-      :entry="entryToDelete"
-      @close="isDeleteModalVisible = false"
-      @confirm="deleteEntryConfirmed"
+    <ConfirmModal
+      :visible="isDeleteModalVisible"
+      :message="`Are you sure you want to delete ${entryToDelete}?`"
+      :onConfirm="deleteEntryConfirmed"
+      :onCancel="
+        () => {
+          isDeleteModalVisible = false
+        }
+      "
+    />
+    <ConfirmModal
+      :visible="isWhoisConfirmVisible"
+      :message="whoisConfirmText"
+      :onConfirm="whoisConfirmed"
+      :onCancel="cancelWhois"
     />
     <Notification
       v-if="notificationMessage"
@@ -50,7 +60,7 @@
 <script>
 import { ref } from 'vue'
 import WhoisModal from './WhoisModal.vue'
-import DeleteConfirmationModal from './DeleteConfirmationModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 import Notification from './Notification.vue'
 import axios from '../axios'
 
@@ -58,7 +68,7 @@ export default {
   name: 'EntryList',
   components: {
     WhoisModal,
-    DeleteConfirmationModal,
+    ConfirmModal,
     Notification,
   },
   props: {
@@ -84,12 +94,34 @@ export default {
     const notificationMessage = ref('')
     const notificationType = ref('success')
 
+    // Для подтверждения Whois
+    const isWhoisConfirmVisible = ref(false)
+    const whoisConfirmText = ref(
+      'Frequent Whois requests may result in your IP address being temporarily blocked. Are you sure you want to proceed?',
+    )
+    const entryToWhois = ref('')
+
     const searchIpSet = () => {
       if (props.selectedSet) {
         emit('search-ip-set', filter.value)
       } else {
         emit('update:errorMessage', 'Please select an IP set')
       }
+    }
+
+    const confirmWhois = (entry) => {
+      entryToWhois.value = entry
+      isWhoisConfirmVisible.value = true
+    }
+
+    const whoisConfirmed = async () => {
+      isWhoisConfirmVisible.value = false
+      await whois(entryToWhois.value)
+    }
+
+    const cancelWhois = () => {
+      isWhoisConfirmVisible.value = false
+      entryToWhois.value = ''
     }
 
     const whois = async (entry) => {
@@ -140,6 +172,12 @@ export default {
       confirmDelete,
       deleteEntryConfirmed,
       showNotification,
+      // Новые для подтверждения Whois
+      isWhoisConfirmVisible,
+      whoisConfirmText,
+      confirmWhois,
+      whoisConfirmed,
+      cancelWhois,
     }
   },
 }
@@ -150,8 +188,8 @@ export default {
   width: 400px;
   padding: 20px;
   border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #0000000f;
   background-color: #ffffff;
 }
 

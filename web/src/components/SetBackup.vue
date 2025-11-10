@@ -16,7 +16,7 @@
         No backups available for {{ setName }}.
       </div>
       <div v-else>
-        <div v-for="(backup, index) in ipSetStore.backups" :key="backup" class="entry">
+        <div v-for="backup in ipSetStore.backups" :key="backup" class="entry">
           <span>{{ backup }}</span>
           <div class="buttons">
             <button @click="confirmRestore(backup)">Restore</button>
@@ -25,17 +25,25 @@
         </div>
       </div>
     </div>
-    <RestoreConfirmationModal
-      :isVisible="isRestoreModalVisible"
-      :backup="backupToRestore"
-      @close="isRestoreModalVisible = false"
-      @confirm="restoreBackupConfirmed"
+    <ConfirmModal
+      :visible="isRestoreModalVisible"
+      :message="`Are you sure you want to restore the backup ${backupToRestore}?`"
+      :onConfirm="restoreBackupConfirmed"
+      :onCancel="
+        () => {
+          isRestoreModalVisible = false
+        }
+      "
     />
-    <DeleteConfirmationModal
-      :isVisible="isDeleteModalVisible"
-      :entry="backupToDelete"
-      @close="isDeleteModalVisible = false"
-      @confirm="deleteBackupConfirmed"
+    <ConfirmModal
+      :visible="isDeleteModalVisible"
+      :message="`Are you sure you want to delete ${backupToDelete}?`"
+      :onConfirm="deleteBackupConfirmed"
+      :onCancel="
+        () => {
+          isDeleteModalVisible = false
+        }
+      "
     />
     <Notification
       v-if="notificationMessage"
@@ -48,14 +56,12 @@
 <script>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useIpSetStore } from '../stores/ipsetStore'
-import RestoreConfirmationModal from './RestoreConfirmationModal.vue'
-import DeleteConfirmationModal from './DeleteConfirmationModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 import Notification from './Notification.vue'
 
 export default {
   components: {
-    RestoreConfirmationModal,
-    DeleteConfirmationModal,
+    ConfirmModal,
     Notification,
   },
   props: {
@@ -192,8 +198,8 @@ export default {
   width: 400px;
   padding: 20px;
   border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px #0000000f;
   background-color: #ffffff;
   margin-left: 20px;
 }
