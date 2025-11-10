@@ -1,6 +1,8 @@
 # ipset-ui
 
-**ipset-ui** is a web interface for managing IP sets (ipset) on a server. The project consists of a Go backend service and a Vue 3 frontend application.
+**ipset-ui** is a web interface for managing IP sets via the ipset CLI on a server. The project consists of a Go backend service and a Vue 3 frontend application.
+
+>ipset-ui builds into a single binary file with an embedded frontend. To run the application, you only need this one file.
 
 ![ipset-ui screenshot](screenshot.png)
 
@@ -16,42 +18,23 @@
 
 ## Import from File
 
-You can import a list of CIDR or IP addresses from a file (for example, exported from [ip2location Visitor Blocker](https://www.ip2location.com/free/visitor-blocker)). The web interface allows you to upload and bulk add entries to an ipset set.
-
-## Backup and Restore
-
-You can create backups of ipset sets and restore them when needed. Backups are stored in a dedicated directory and managed through the web interface.
+You can import a list of CIDR or IP addresses from a file (for example, exported from [ip2location Visitor Blocker](https://www.ip2location.com/free/visitor-blocker) in CIDR output format). The web interface allows you to upload and bulk add entries to an ipset set.
 
 ## Quick Start
 
 ### Local
 
-1. Install frontend dependencies:
-   ```
-   cd web
-   npm install
-   ```
-2. Build the frontend:
-   ```
-   npm run build
-   ```
-3. Build and run the backend:
-   ```
-   cd ../api
-   go build -o ipset-ui ./cmd/main.go
-   ./ipset-ui
-   ```
+```
+make build
+```
 
 ### Docker
 
 ```
-docker compose up -d --build
+make docker-compose-up
 ```
 
 ## Environment Variables
 
-- `APP_PORT` — backend port (default 8080) (optional)
-- `APP_HOST` — backend listen address (default 0.0.0.0) (optional)
-- `STATIC_DIR` — path to frontend static files (optional)
-- `IPSET_BACKUP_DIR` — directory for ipset backups (required)
-- `FRONTEND_URL` — used during development to proxy API requests to the frontend server (for example, when running `npm run dev`) (optional)
+- `APP_DIR` —  Path to the application directory. (default /opt/ipset-ui) (optional)
+- `LISTEN_ADDRESS` — Address and port for the backend service (which also serves the web interface) to listen on. (default 0.0.0.0:8080) (optional)
