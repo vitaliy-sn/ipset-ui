@@ -25,18 +25,14 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            - name: APP_PORT
-              value: "8000"
-            - name: IPSET_BACKUP_DIR
-              value: "/backups"
-            - name: STATIC_DIR
-              value: "/app/static"
+            - name: LISTEN_ADDRESS
+              value: "0.0.0.0:8000"
           volumeMounts:
-            - mountPath: /backups
-              name: backups
+            - name: data
+              mountPath: /opt/ipset-ui
               readOnly: false
       volumes:
-        - name: backups
+        - name: data
           hostPath:
             path: /opt/ipset-ui
             type: Directory

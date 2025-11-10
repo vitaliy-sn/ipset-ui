@@ -1,8 +1,9 @@
 # ixdx/ipset-ui:latest
 
+
 # Frontend builder
 
-FROM node:22-alpine AS frontend-builder
+FROM node:22-bookworm AS frontend-builder
 WORKDIR /app
 
 COPY web/package*.json ./
@@ -11,26 +12,29 @@ RUN npm install
 COPY web/ ./
 RUN npm run build
 
+
 # Backend builder
 
-FROM golang:1.24-alpine AS backend-builder
+FROM golang:1.25-bookworm AS backend-builder
 WORKDIR /app
 
-COPY api/go.mod api/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY api/ ./
+COPY ./ ./
+RUN rm -rf internal/static/dist
+COPY --from=frontend-builder /app/dist ./internal/static/dist
 RUN go build -o ./ipset-ui ./cmd/main.go
+
 
 # Final image
 
-FROM ubuntu:24.04
+FROM debian:bookworm
 WORKDIR /app
 
 RUN apt update && apt install -y ipset whois && rm -rf /var/lib/apt/lists/* && apt clean all
 
 COPY --from=backend-builder /app/ipset-ui /app/ipset-ui
-COPY --from=frontend-builder /app/dist /app/static
 
 EXPOSE 8080
 
