@@ -1,0 +1,14 @@
+[Unit]
+Description=ipset ui
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ipset-ui
+Restart=on-failure
+RestartSec=3
+Environment=GIN_MODE=release
+Environment=LISTEN_ADDRESS=0.0.0.0:8080
+
+[Install]
+WantedBy=default.target
