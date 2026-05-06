@@ -55,10 +55,10 @@ export default {
       }
     }
 
-    const deleteEntry = async (entry) => {
+    const deleteEntry = async ({ entry, filter }) => {
       try {
         const message = await ipSetStore.deleteEntry(selectedSet.value, entry)
-        searchIpSet('') // Refresh the list after deletion
+        searchIpSet(filter) // Refresh the list after deletion
         return message
       } catch (error) {
         console.error('Delete request failed', error)

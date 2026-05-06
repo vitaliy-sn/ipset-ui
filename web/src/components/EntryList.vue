@@ -141,7 +141,7 @@ export default {
 
     const deleteEntryConfirmed = async () => {
       try {
-        const message = await emit('delete-entry', entryToDelete.value)
+        const message = await emit('delete-entry', { entry: entryToDelete.value, filter: filter.value })
         isDeleteModalVisible.value = false
         searchIpSet() // Refresh the list after deletion
         showNotification(message, 'success')
