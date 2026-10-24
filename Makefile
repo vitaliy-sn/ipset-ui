@@ -4,6 +4,13 @@ APP_NAME            = ipset-ui
 APP_SERVICE_NAME    = $(APP_NAME).service
 APP_BIN_PATH        = $(BIN_DIR)/$(APP_NAME)
 
+VERSION_PKG         := ipset-ui/internal/version
+GIT_COMMIT          := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+ifneq ($(shell git status --porcelain 2>/dev/null),)
+GIT_COMMIT          := $(GIT_COMMIT)-dirty
+endif
+LDFLAGS             := -X $(VERSION_PKG).BuildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) -X $(VERSION_PKG).Commit=$(GIT_COMMIT)
+
 .PHONY: build-frontend build-backend build
 .PHONY: run dev dev-frontend
 .PHONY: install uninstall install-service uninstall-service
@@ -20,12 +27,12 @@ build-frontend:
 
 build-backend:
 	@echo "Building backend (main server)..."
-	go build -o $(APP_NAME) ./cmd
+	go build -ldflags "$(LDFLAGS)" -o $(APP_NAME) ./cmd
 
 build: build-frontend build-backend
 
 run: build-frontend
-	go run ./cmd
+	go run -ldflags "$(LDFLAGS)" ./cmd
 
 dev: build-backend
 	LISTEN_ADDRESS=0.0.0.0:6090 \
