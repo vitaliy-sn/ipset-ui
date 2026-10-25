@@ -8,9 +8,11 @@ export const useIpSetStore = defineStore('ipset', {
     ipSets: [],
     ipAddresses: [],
     backups: [],
+    lastFilter: '',
   }),
   actions: {
     async searchIpSet(setName, filter) {
+      this.lastFilter = filter
       try {
         const response = await axios.post(`/ipsets/${setName}/entries/search`, { filter })
         this.ipEntries = response.data

@@ -15,8 +15,8 @@
         :selectedSet="selectedSet"
         :ipEntries="ipSetStore.ipEntries"
         :errorMessage="ipSetStore.errorMessage"
+        :initialFilter="initialFilter"
         @search-ip-set="searchIpSet"
-        @delete-entry="deleteEntry"
       />
       <div class="add-entry-container">
         <AddEntry :selectedSet="selectedSet" @check-ip="checkIp" />
@@ -27,7 +27,7 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useIpSetStore } from '../stores/ipsetStore'
 import AddEntry from '../components/AddEntry.vue'
 import SetListSidebar from '../components/SetListSidebar.vue'
@@ -44,25 +44,18 @@ export default {
   setup() {
     const ipSetStore = useIpSetStore()
     const selectedSet = ref('')
-
     const router = useRouter()
+    const route = useRoute()
+
+    // Seed the search box from the URL synchronously so a page reload restores it
+    const initialFilter = ref(typeof route.query.filter === 'string' ? route.query.filter : '')
 
     const searchIpSet = (filter = '') => {
       if (selectedSet.value) {
         ipSetStore.searchIpSet(selectedSet.value, filter)
+        router.replace({ query: { set: selectedSet.value, ...(filter ? { filter } : {}) } })
       } else {
         ipSetStore.errorMessage = 'Please select an IP set'
-      }
-    }
-
-    const deleteEntry = async ({ entry, filter }) => {
-      try {
-        const message = await ipSetStore.deleteEntry(selectedSet.value, entry)
-        searchIpSet(filter) // Refresh the list after deletion
-        return message
-      } catch (error) {
-        console.error('Delete request failed', error)
-        throw error
       }
     }
 
@@ -70,6 +63,8 @@ export default {
       selectedSet.value = set
       ipSetStore.ipEntries = [] // Clear the current entries
       ipSetStore.errorMessage = '' // Clear any error message
+      ipSetStore.lastFilter = '' // Reset the applied search filter
+      router.replace({ query: set ? { set } : {} })
     }
 
     const checkIp = (ip) => {
@@ -81,17 +76,30 @@ export default {
     }
 
     onMounted(async () => {
+      const requestedSet = typeof route.query.set === 'string' ? route.query.set : ''
+      const requestedFilter = initialFilter.value
+      // A warm store means we came back from another tab; keep the loaded list as-is
+      const wasWarm = ipSetStore.ipSets.length > 0
       await ipSetStore.fetchIpSets()
-      if (ipSetStore.ipSets.length > 0) {
-        selectedSet.value = ipSetStore.ipSets[0]
+      const validSet = requestedSet && ipSetStore.ipSets.includes(requestedSet)
+      if (validSet) {
+        selectedSet.value = requestedSet
+        // Only re-run the search on a cold start (a real page reload)
+        if (requestedFilter && !wasWarm) {
+          searchIpSet(requestedFilter)
+        }
+      } else {
+        // The set from the URL no longer exists: fall back and drop the stale filter
+        initialFilter.value = ''
+        selectSet(ipSetStore.ipSets[0] || '')
       }
     })
 
     return {
       ipSetStore,
       selectedSet,
+      initialFilter,
       searchIpSet,
-      deleteEntry,
       selectSet,
       checkIp,
       goToSets,

@@ -58,11 +58,12 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import WhoisModal from './WhoisModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
 import Notification from './Notification.vue'
 import axios from '../axios'
+import { useIpSetStore } from '../stores/ipsetStore'
 
 export default {
   name: 'EntryList',
@@ -84,9 +85,21 @@ export default {
       type: String,
       required: false,
     },
+    initialFilter: {
+      type: String,
+      default: '',
+    },
   },
   setup(props, { emit }) {
-    const filter = ref('')
+    const ipSetStore = useIpSetStore()
+    const filter = ref(props.initialFilter)
+    // Keep the search box in sync when the restored filter is invalidated (e.g. set removed)
+    watch(
+      () => props.initialFilter,
+      (value) => {
+        filter.value = value
+      },
+    )
     const isWhoisModalVisible = ref(false)
     const whoisData = ref('')
     const isDeleteModalVisible = ref(false)
@@ -140,10 +153,11 @@ export default {
     }
 
     const deleteEntryConfirmed = async () => {
+      isDeleteModalVisible.value = false
       try {
-        const message = await emit('delete-entry', { entry: entryToDelete.value, filter: filter.value })
-        isDeleteModalVisible.value = false
-        searchIpSet() // Refresh the list after deletion
+        const message = await ipSetStore.deleteEntry(props.selectedSet, entryToDelete.value)
+        // Refresh with the filter that is currently applied to the list
+        await ipSetStore.searchIpSet(props.selectedSet, ipSetStore.lastFilter)
         showNotification(message, 'success')
       } catch (error) {
         console.error('Delete request failed', error)

@@ -29,7 +29,7 @@ export default {
       if (this.activeTab !== tab.value) {
         this.activeTab = tab.value
         this.$emit('tab-change', tab.value)
-        this.$router.push(tab.route)
+        this.$router.push({ path: tab.route, query: this.$route.query })
       }
     },
     syncTabWithRoute() {
