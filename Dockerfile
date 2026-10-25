@@ -3,7 +3,7 @@
 
 # Frontend builder
 
-FROM node:22-bookworm AS frontend-builder
+FROM node:24.22-bookworm AS frontend-builder
 WORKDIR /app
 
 COPY web/package*.json ./
