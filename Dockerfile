@@ -15,7 +15,7 @@ RUN npm run build
 
 # Backend builder
 
-FROM golang:1.25-bookworm AS backend-builder
+FROM golang:1.27-bookworm AS backend-builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
