@@ -24,7 +24,14 @@ RUN go mod download
 COPY ./ ./
 RUN rm -rf internal/static/dist
 COPY --from=frontend-builder /app/dist ./internal/static/dist
-RUN go build -o ./ipset-ui ./cmd/main.go
+ARG VERSION_PKG=ipset-ui/internal/version
+RUN set -eux; \
+    COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"; \
+    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then \
+        COMMIT="${COMMIT}-dirty"; \
+    fi; \
+    LDFLAGS="-X ${VERSION_PKG}.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X ${VERSION_PKG}.Commit=${COMMIT}"; \
+    go build -ldflags "${LDFLAGS}" -o ./ipset-ui ./cmd/main.go
 
 
 # Final image
