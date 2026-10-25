@@ -57,6 +57,14 @@ func EmbedStaticHandler() http.Handler {
 			w.Header().Set("Content-Type", "application/octet-stream")
 		}
 
+		// HTML pages are revalidated on every load so a new frontend build is picked up;
+		// asset file names contain a content hash and can be cached indefinitely.
+		if ext == ".html" {
+			w.Header().Set("Cache-Control", "no-cache")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+
 		readSeeker, ok := file.(io.ReadSeeker)
 		if !ok {
 			http.NotFound(w, r)
