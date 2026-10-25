@@ -8,7 +8,7 @@
 
 <script>
 export default {
-  name: 'Notification',
+  name: 'AppNotification',
   props: {
     message: {
       type: String,

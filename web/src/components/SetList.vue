@@ -26,7 +26,7 @@
         }
       "
     />
-    <Notification
+    <AppNotification
       v-if="notificationMessage"
       :message="notificationMessage"
       :type="notificationType"
@@ -38,12 +38,12 @@
 import { ref, onMounted } from 'vue'
 import { useIpSetStore } from '../stores/ipsetStore'
 import ConfirmModal from './ConfirmModal.vue'
-import Notification from './Notification.vue'
+import AppNotification from './AppNotification.vue'
 
 export default {
   components: {
     ConfirmModal,
-    Notification,
+    AppNotification,
   },
   setup(_, { emit }) {
     const ipSetStore = useIpSetStore()

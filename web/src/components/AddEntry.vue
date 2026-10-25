@@ -36,7 +36,7 @@
           <button @click.prevent="addEntry(ip, comment)">Add</button>
         </div>
       </div>
-      <Notification
+      <AppNotification
         v-if="notificationMessage"
         :message="notificationMessage"
         :type="notificationType"
@@ -66,7 +66,7 @@
       <div class="import-btn-wrapper">
         <button :disabled="!importFile || importInProgress" @click="importEntries">Import</button>
       </div>
-      <Notification
+      <AppNotification
         v-if="notificationMessage"
         :message="notificationMessage"
         :type="notificationType"
@@ -78,12 +78,12 @@
 <script>
 import { watch } from 'vue'
 import { useIpSetStore } from '../stores/ipsetStore'
-import Notification from './Notification.vue'
+import AppNotification from './AppNotification.vue'
 
 export default {
   name: 'AddEntry',
   components: {
-    Notification,
+    AppNotification,
   },
   props: {
     selectedSet: {

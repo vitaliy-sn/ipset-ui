@@ -49,7 +49,7 @@
       :onConfirm="whoisConfirmed"
       :onCancel="cancelWhois"
     />
-    <Notification
+    <AppNotification
       v-if="notificationMessage"
       :message="notificationMessage"
       :type="notificationType"
@@ -61,7 +61,7 @@
 import { ref, watch } from 'vue'
 import WhoisModal from './WhoisModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
-import Notification from './Notification.vue'
+import AppNotification from './AppNotification.vue'
 import axios from '../axios'
 import { useIpSetStore } from '../stores/ipsetStore'
 
@@ -70,7 +70,7 @@ export default {
   components: {
     WhoisModal,
     ConfirmModal,
-    Notification,
+    AppNotification,
   },
   props: {
     selectedSet: {
