@@ -1,12 +1,15 @@
 <template>
   <div class="container">
     <div class="input-group">
-      <input
-        v-model="filter"
-        @keyup.enter="searchIpSet"
-        type="text"
-        placeholder="Empty / IP / CIDR"
-      />
+      <div class="input-wrapper">
+        <input
+          v-model="filter"
+          @keyup.enter="searchIpSet"
+          type="text"
+          placeholder="Empty / IP / CIDR"
+        />
+        <button v-if="filter" class="clear" title="Clear" @click="clearFilter">×</button>
+      </div>
       <button @click="searchIpSet">Search</button>
     </div>
     <div class="results">
@@ -123,6 +126,10 @@ export default {
       }
     }
 
+    const clearFilter = () => {
+      filter.value = ''
+    }
+
     const confirmWhois = (entry) => {
       entryToWhois.value = entry
       isWhoisConfirmVisible.value = true
@@ -185,6 +192,7 @@ export default {
       notificationMessage,
       notificationType,
       searchIpSet,
+      clearFilter,
       whois,
       confirmDelete,
       deleteEntryConfirmed,
@@ -216,13 +224,39 @@ export default {
   margin-bottom: 20px;
 }
 
-.input-group input {
+.input-wrapper {
+  position: relative;
   flex: 1;
-  padding: 8px;
+  min-width: 0;
   margin-right: 10px;
+}
+
+.input-wrapper input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 32px 8px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
+}
+
+.input-wrapper .clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.input-wrapper .clear:hover {
+  background: none;
+  color: #333;
 }
 
 .input-group button {
