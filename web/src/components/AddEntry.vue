@@ -9,7 +9,11 @@
     <div v-if="activeTab === 'add'">
       <h3>Add New Entry</h3>
       <div class="input-group">
-        <input v-model="entry" type="text" placeholder="IP / CIDR / Domain" />
+        <input
+          v-model="entry"
+          type="text"
+          placeholder="IP / CIDR / Domain — multiple can be separated by space or comma"
+        />
       </div>
       <div class="input-group">
         <input v-model="comment" type="text" placeholder="Comment (optional)" />
@@ -134,6 +138,21 @@ export default {
               this.entry = ''
               this.comment = ''
               this.resolvedDomain = ''
+            }
+            const parsed = String(ip).split(/[\s,]+/).filter(Boolean)
+            if (parsed.length > 1) {
+              const added =
+                typeof response.data?.added === 'number' ? response.data.added : parsed.length
+              if (added < parsed.length) {
+                const failed = response.data?.failed || []
+                const failedPart = failed.length ? ` (failed: ${failed.join(', ')})` : ''
+                this.notificationType = 'error'
+                this.showNotification(`Added ${added} of ${parsed.length} entries${failedPart}`)
+              } else {
+                this.notificationType = 'success'
+                this.showNotification(`${added} entries successfully added`)
+              }
+              return
             }
             this.notificationType = 'success'
             this.showNotification(`IP address ${ip} successfully added`)

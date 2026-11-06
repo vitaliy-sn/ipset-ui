@@ -4,7 +4,16 @@ import (
 	"bufio"
 	"io"
 	"strings"
+	"unicode"
 )
+
+// SplitEntries splits a string of entries into individual entries.
+// Entries may be separated by commas and/or whitespace (a space after a comma is allowed).
+func SplitEntries(s string) []string {
+	return strings.FieldsFunc(s, func(r rune) bool {
+		return r == ',' || unicode.IsSpace(r)
+	})
+}
 
 // ReadEntriesFromReader reads lines from an io.Reader, trims spaces, skips empty lines, and returns a slice of entries.
 // Each line is considered a separate entry.

@@ -22,16 +22,36 @@ func (c *IPSetController) AddEntry(ctx *gin.Context) {
 		return
 	}
 
-	if _, err := ipset.AddEntries(setName, []string{req.Entry}, req.Comment); err != nil {
-		if strings.Contains(err.Error(), "entry not added") {
-			ctx.JSON(http.StatusConflict, gin.H{"error": "Entry already exists or not added. " + err.Error()})
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	entries := utils.SplitEntries(req.Entry)
+	if len(entries) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "no entries provided"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Entry added"})
+	added, failed, err := ipset.AddEntries(setName, entries, req.Comment)
+	if err != nil {
+		if added == 0 {
+			if strings.Contains(err.Error(), "entry not added") {
+				ctx.JSON(http.StatusConflict, gin.H{"error": "Entry already exists or not added. " + err.Error()})
+				return
+			}
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("Added %d of %d entries", added, len(entries)),
+			"added":   added,
+			"total":   len(entries),
+			"failed":  failed,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Entry added",
+		"added":   added,
+		"total":   len(entries),
+	})
 }
 
 // DeleteEntry removes an entry from the set.
@@ -77,7 +97,7 @@ func (c *IPSetController) ImportEntries(ctx *gin.Context) {
 		return
 	}
 
-	added, err := ipset.AddEntries(setName, entries, comment)
+	added, _, err := ipset.AddEntries(setName, entries, comment)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Import from '%s' failed: %s", header.Filename, err.Error()),
