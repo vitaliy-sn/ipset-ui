@@ -30,6 +30,7 @@
       v-if="notificationMessage"
       :message="notificationMessage"
       :type="notificationType"
+      @close="notificationMessage = ''"
     />
   </div>
 </template>
@@ -89,9 +90,11 @@ export default {
     const showNotification = (message, type = 'success') => {
       notificationMessage.value = message
       notificationType.value = type
-      setTimeout(() => {
-        notificationMessage.value = ''
-      }, 3000)
+      if (type === 'success') {
+        setTimeout(() => {
+          notificationMessage.value = ''
+        }, 3000)
+      }
     }
 
     onMounted(async () => {

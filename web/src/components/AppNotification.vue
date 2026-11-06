@@ -2,6 +2,7 @@
   <transition name="fade">
     <div v-if="isVisible" :class="['notification', type]">
       <span class="message">{{ message }}</span>
+      <button class="close" aria-label="Close" @click="close">&times;</button>
     </div>
   </transition>
 </template>
@@ -20,15 +21,30 @@ export default {
       validator: (value) => ['success', 'error'].includes(value),
     },
   },
+  emits: ['close'],
   data() {
     return {
       isVisible: true,
+      hideTimer: null,
     }
   },
   mounted() {
-    setTimeout(() => {
-      this.isVisible = false
-    }, 3000)
+    if (this.type === 'success') {
+      this.hideTimer = setTimeout(() => {
+        this.isVisible = false
+      }, 3000)
+    }
+  },
+  beforeUnmount() {
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer)
+      this.hideTimer = null
+    }
+  },
+  methods: {
+    close() {
+      this.$emit('close')
+    },
   },
 }
 </script>
@@ -62,6 +78,21 @@ export default {
 .message {
   flex: 1;
   font-size: 16px;
+}
+
+.close {
+  margin-left: 16px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #cccccc;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #ffffff;
 }
 
 .fade-enter-active,

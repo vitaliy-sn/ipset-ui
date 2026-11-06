@@ -40,6 +40,7 @@
         v-if="notificationMessage"
         :message="notificationMessage"
         :type="notificationType"
+        @close="notificationMessage = ''"
       />
     </div>
     <div v-else-if="activeTab === 'import'">
@@ -70,6 +71,7 @@
         v-if="notificationMessage"
         :message="notificationMessage"
         :type="notificationType"
+        @close="notificationMessage = ''"
       />
     </div>
   </div>
@@ -252,9 +254,11 @@ export default {
     },
     showNotification(message) {
       this.notificationMessage = message
-      setTimeout(() => {
-        this.notificationMessage = ''
-      }, 3000)
+      if (this.notificationType === 'success') {
+        setTimeout(() => {
+          this.notificationMessage = ''
+        }, 3000)
+      }
     },
     checkIp(ip) {
       this.$emit('check-ip', ip)
