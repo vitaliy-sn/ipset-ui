@@ -9,14 +9,20 @@
     <div v-if="activeTab === 'add'">
       <h3>Add New Entry</h3>
       <div class="input-group">
-        <input
-          v-model="entry"
-          type="text"
-          placeholder="IP / CIDR / Domain — multiple can be separated by space or comma"
-        />
+        <div class="input-wrapper">
+          <input
+            v-model="entry"
+            type="text"
+            placeholder="IP / CIDR / Domain — multiple can be separated by space or comma"
+          />
+          <button v-if="entry" class="clear" title="Clear" @click="clearEntry">×</button>
+        </div>
       </div>
       <div class="input-group">
-        <input v-model="comment" type="text" placeholder="Comment (optional)" />
+        <div class="input-wrapper">
+          <input v-model="comment" type="text" placeholder="Comment (optional)" />
+          <button v-if="comment" class="clear" title="Clear" @click="clearComment">×</button>
+        </div>
       </div>
       <div class="import-btn-wrapper">
         <button v-if="!entry || !isDomain(entry)" @click.prevent="addEntry(entry)">Add</button>
@@ -66,7 +72,10 @@
         />
       </div>
       <div class="input-group">
-        <input v-model="importComment" type="text" placeholder="Comment (optional)" />
+        <div class="input-wrapper">
+          <input v-model="importComment" type="text" placeholder="Comment (optional)" />
+          <button v-if="importComment" class="clear" title="Clear" @click="clearImportComment">×</button>
+        </div>
       </div>
       <div class="import-btn-wrapper">
         <button :disabled="!importFile || importInProgress" @click="importEntries">Import</button>
@@ -119,6 +128,15 @@ export default {
     },
   },
   methods: {
+    clearEntry() {
+      this.entry = ''
+    },
+    clearComment() {
+      this.comment = ''
+    },
+    clearImportComment() {
+      this.importComment = ''
+    },
     async addEntry(ip = this.entry, comment = this.comment) {
       if (this.selectedSet && ip) {
         try {
@@ -386,8 +404,8 @@ button[disabled] {
   margin-bottom: 20px;
 }
 
-.input-group select,
-.input-group input {
+.input-group select {
+  flex: 1;
   padding: 8px;
   margin-right: 10px;
   border: 1px solid #ccc;
@@ -395,18 +413,38 @@ button[disabled] {
   font-size: 16px;
 }
 
-.input-group input[type='text'] {
-  width: 100%;
-  margin-right: 0;
-  box-sizing: border-box;
-}
-
-.input-group select {
+.input-wrapper {
+  position: relative;
   flex: 1;
+  min-width: 0;
 }
 
-.input-group input {
-  flex: 2;
+.input-wrapper input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 32px 8px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.input-wrapper .clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.input-wrapper .clear:hover {
+  background: none;
+  color: #333;
 }
 
 .input-group button {

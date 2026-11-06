@@ -1,14 +1,25 @@
 <template>
   <div class="backup-container">
     <div class="input-group">
-      <input
-        v-model="backupNamePart"
-        :readonly="!isEditing"
-        @focus="startEditing"
-        @blur="stopEditing"
-        maxlength="30"
-        placeholder="Enter backup name"
-      />
+      <div class="input-wrapper">
+        <input
+          v-model="backupNamePart"
+          :readonly="!isEditing"
+          @focus="startEditing"
+          @blur="stopEditing"
+          maxlength="30"
+          placeholder="Enter backup name"
+        />
+        <button
+          v-if="isEditing && backupNamePart"
+          class="clear"
+          title="Clear"
+          @click="clearBackupName"
+          @mousedown.prevent
+        >
+          ×
+        </button>
+      </div>
       <button @click="createBackup">Backup</button>
     </div>
     <div class="results">
@@ -143,6 +154,10 @@ export default {
       backupNamePart.value = ''
     }
 
+    const clearBackupName = () => {
+      backupNamePart.value = ''
+    }
+
     const stopEditing = () => {
       if (!backupNamePart.value) {
         backupNamePart.value = new Date()
@@ -190,6 +205,7 @@ export default {
       deleteBackupConfirmed,
       startEditing,
       stopEditing,
+      clearBackupName,
       showNotification,
     }
   },
@@ -212,18 +228,44 @@ export default {
   margin-bottom: 20px;
 }
 
-.input-group input {
+.input-wrapper {
+  position: relative;
   flex: 1;
-  padding: 8px;
+  min-width: 0;
   margin-right: 10px;
+}
+
+.input-wrapper input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 32px 8px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
   color: #888;
 }
 
-.input-group input:focus {
+.input-wrapper input:focus {
   color: #000;
+}
+
+.input-wrapper .clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.input-wrapper .clear:hover {
+  background: none;
+  color: #333;
 }
 
 .input-group button {

@@ -1,7 +1,10 @@
 <template>
   <div class="sets-container">
     <div class="input-group">
-      <input v-model="newSetName" type="text" placeholder="Enter new set name" />
+      <div class="input-wrapper">
+        <input v-model="newSetName" type="text" placeholder="Enter new set name" />
+        <button v-if="newSetName" class="clear" title="Clear" @click="clearName">×</button>
+      </div>
       <button @click="addSet">Add</button>
     </div>
     <div class="results">
@@ -53,6 +56,10 @@ export default {
     const setToDelete = ref('')
     const notificationMessage = ref('')
     const notificationType = ref('success')
+
+    const clearName = () => {
+      newSetName.value = ''
+    }
 
     const addSet = async () => {
       if (newSetName.value.trim()) {
@@ -107,6 +114,7 @@ export default {
       setToDelete,
       notificationMessage,
       notificationType,
+      clearName,
       addSet,
       confirmDelete,
       deleteSetConfirmed,
@@ -132,13 +140,39 @@ export default {
   margin-bottom: 20px;
 }
 
-.input-group input {
+.input-wrapper {
+  position: relative;
   flex: 1;
-  padding: 8px;
+  min-width: 0;
   margin-right: 10px;
+}
+
+.input-wrapper input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 32px 8px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
+}
+
+.input-wrapper .clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.input-wrapper .clear:hover {
+  background: none;
+  color: #333;
 }
 
 .input-group button {
