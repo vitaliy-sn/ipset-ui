@@ -58,6 +58,7 @@ func NewRouter() *gin.Engine {
 	api.DELETE("/ipsets/:setName", ipsetController.DestroySet)
 	api.POST("/ipsets/:setName/entries", ipsetController.AddEntry)
 	api.DELETE("/ipsets/:setName/entries", ipsetController.DeleteEntry)
+	api.DELETE("/ipsets/:setName/entries/bulk", ipsetController.DeleteEntries)
 	api.POST("/ipsets/:setName/entries/import", ipsetController.ImportEntries)
 	api.POST("/ipsets/:setName/entries/search", ipsetController.GetEntries)
 	api.GET("/ipsets/:setName/backups", ipsetController.ListBackupFiles)

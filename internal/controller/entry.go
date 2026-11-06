@@ -73,6 +73,62 @@ func (c *IPSetController) DeleteEntry(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Entry deleted"})
 }
 
+// DeleteEntries removes all entries matching the given filter.
+func (c *IPSetController) DeleteEntries(ctx *gin.Context) {
+	setName := ctx.Param("setName")
+	var req struct {
+		Filter string `json:"filter"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if strings.TrimSpace(req.Filter) == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "filter is required"})
+		return
+	}
+
+	entries, err := ipset.ListEntries(setName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	matched := ipset.FilterEntries(entries, req.Filter)
+	if len(matched) == 0 {
+		ctx.JSON(http.StatusOK, gin.H{"message": "No entries to delete"})
+		return
+	}
+
+	names := make([]string, 0, len(matched))
+	for _, entry := range matched {
+		names = append(names, entry.Entry)
+	}
+
+	deleted, failed, err := ipset.DeleteEntries(setName, names)
+	if err != nil && deleted == 0 {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(failed) > 0 {
+		ctx.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("Deleted %d of %d entries", deleted, len(matched)),
+			"deleted": deleted,
+			"total":   len(matched),
+			"failed":  failed,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("Deleted %d entries", deleted),
+		"deleted": deleted,
+		"total":   len(matched),
+	})
+}
+
 // ImportEntries imports entries from an uploaded file (multipart/form-data).
 func (c *IPSetController) ImportEntries(ctx *gin.Context) {
 	setName := ctx.Param("setName")

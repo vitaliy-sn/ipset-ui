@@ -12,6 +12,10 @@
       </div>
       <button @click="searchIpSet">Search</button>
     </div>
+    <div v-if="canDeleteAll" class="bulk-actions">
+      <span class="count">{{ ipEntries.length }} entries found</span>
+      <button class="delete-all" @click="confirmDeleteAll">Delete all</button>
+    </div>
     <div class="results">
       <div v-if="ipEntries.length === 0">
         {{ errorMessage || 'Entries Not Found' }}
@@ -52,6 +56,16 @@
       :onConfirm="whoisConfirmed"
       :onCancel="cancelWhois"
     />
+    <ConfirmModal
+      :visible="isDeleteAllModalVisible"
+      :message="deleteAllConfirmText"
+      :onConfirm="deleteAllConfirmed"
+      :onCancel="
+        () => {
+          isDeleteAllModalVisible = false
+        }
+      "
+    />
     <AppNotification
       v-if="notificationMessage"
       :message="notificationMessage"
@@ -62,7 +76,7 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import WhoisModal from './WhoisModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
 import AppNotification from './AppNotification.vue'
@@ -160,6 +174,32 @@ export default {
       isDeleteModalVisible.value = true
     }
 
+    const isDeleteAllModalVisible = ref(false)
+    const canDeleteAll = computed(() => props.ipEntries.length > 0 && ipSetStore.lastFilter !== '')
+    const deleteAllConfirmText = computed(
+      () =>
+        `Are you sure you want to delete all ${props.ipEntries.length} entries ` +
+        `matching "${ipSetStore.lastFilter}"? This action cannot be undone.`,
+    )
+
+    const confirmDeleteAll = () => {
+      if (!canDeleteAll.value) return
+      isDeleteAllModalVisible.value = true
+    }
+
+    const deleteAllConfirmed = async () => {
+      isDeleteAllModalVisible.value = false
+      try {
+        const message = await ipSetStore.deleteEntriesByFilter(props.selectedSet, ipSetStore.lastFilter)
+        // Refresh with the filter that is currently applied to the list
+        await ipSetStore.searchIpSet(props.selectedSet, ipSetStore.lastFilter)
+        showNotification(message, 'success')
+      } catch (error) {
+        console.error('Bulk delete request failed', error)
+        showNotification('Error deleting entries', 'error')
+      }
+    }
+
     const deleteEntryConfirmed = async () => {
       isDeleteModalVisible.value = false
       try {
@@ -196,6 +236,11 @@ export default {
       whois,
       confirmDelete,
       deleteEntryConfirmed,
+      isDeleteAllModalVisible,
+      canDeleteAll,
+      deleteAllConfirmText,
+      confirmDeleteAll,
+      deleteAllConfirmed,
       showNotification,
       // Новые для подтверждения Whois
       isWhoisConfirmVisible,
@@ -272,6 +317,33 @@ export default {
 
 .input-group button:hover {
   background-color: #0056b3;
+}
+
+.bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.bulk-actions .count {
+  color: #666;
+  font-size: 14px;
+}
+
+.bulk-actions .delete-all {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #dc3545;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.bulk-actions .delete-all:hover {
+  background-color: #c82333;
 }
 
 .results .entry {

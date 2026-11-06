@@ -52,15 +52,45 @@ func AddEntries(setName string, entries []string, comment string) (int, []string
 	return added, failed, nil
 }
 
-func DeleteEntry(setName, entry string) error {
+func deleteEntry(setName, entry string) error {
 	cmd := exec.Command("ipset", "del", setName, entry)
+	return cmd.Run()
+}
 
-	err := cmd.Run()
-	if err != nil {
+func DeleteEntry(setName, entry string) error {
+	if err := deleteEntry(setName, entry); err != nil {
 		return err
 	}
 
 	return Save(setName)
+}
+
+// DeleteEntries removes multiple entries from the specified ipset set.
+// Returns the number of successfully deleted entries, the list of failed entries,
+// and a combined error for failed deletions.
+func DeleteEntries(setName string, entries []string) (int, []string, error) {
+	deleted := 0
+	var failed []string
+	var merr *multierror.Error
+
+	for _, entry := range entries {
+		if err := deleteEntry(setName, entry); err != nil {
+			failed = append(failed, entry)
+			merr = multierror.Append(merr, fmt.Errorf("entry %q: %w", entry, err))
+			continue
+		}
+		deleted++
+	}
+
+	if err := Save(setName); err != nil {
+		merr = multierror.Append(merr, fmt.Errorf("failed to save set after batch delete: %w", err))
+	}
+
+	if merr != nil {
+		return deleted, failed, merr.ErrorOrNil()
+	}
+
+	return deleted, failed, nil
 }
 
 func ListEntries(setName string) ([]EntryWithComment, error) {

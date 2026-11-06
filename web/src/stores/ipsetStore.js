@@ -53,6 +53,17 @@ export const useIpSetStore = defineStore('ipset', {
         throw error
       }
     },
+    async deleteEntriesByFilter(setName, filter) {
+      try {
+        const response = await axios.delete(`/ipsets/${setName}/entries/bulk`, {
+          data: { filter },
+        })
+        return response.data.message
+      } catch (error) {
+        console.error('Bulk delete entries request failed', error)
+        throw error
+      }
+    },
     async lookupDomain(domain) {
       try {
         const response = await axios.post('/dns-lookup', { domain })
