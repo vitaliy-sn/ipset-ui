@@ -54,8 +54,9 @@ export default {
   position: fixed;
   top: 20px;
   left: 20px;
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   padding: 16px 24px;
   background-color: #323232;
   border-radius: 4px;
@@ -65,6 +66,9 @@ export default {
   z-index: 1000;
   min-width: 300px;
   max-width: 400px;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
 }
 
 .notification.success .message {
@@ -78,6 +82,7 @@ export default {
 .message {
   flex: 1;
   font-size: 16px;
+  white-space: pre-line;
 }
 
 .close {
