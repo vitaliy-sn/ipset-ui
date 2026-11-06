@@ -43,8 +43,36 @@
             </template>
           </span>
           <div class="buttons">
-            <button class="whois" @click="confirmWhois(entry.Entry)">whois</button>
-            <button class="delete" @click="confirmDelete(entry.Entry)">delete</button>
+            <button class="whois" title="whois" @click="confirmWhois(entry.Entry)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 17v-6.5"></path>
+                <path d="M12 7.5h.01"></path>
+              </svg>
+            </button>
+            <button class="delete" title="delete" @click="confirmDelete(entry.Entry)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -364,7 +392,7 @@ export default {
   padding: 4px 12px;
   border: none;
   border-radius: 4px;
-  background-color: #dc3545;
+  background-color: #6c757d;
   color: white;
   font-size: 14px;
   cursor: pointer;
@@ -372,7 +400,7 @@ export default {
 }
 
 .bulk-actions .delete-all:hover {
-  background-color: #c82333;
+  background-color: #5a6268;
 }
 
 .results .entry {
@@ -395,30 +423,29 @@ export default {
 }
 
 .results .entry .buttons button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 10px;
-  padding: 4px 8px;
+  padding: 4px 6px;
   border: none;
   border-radius: 4px;
+  background: none;
+  color: #666;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
+  transition: color 0.2s;
 }
 
-.results .entry .buttons .whois {
-  background-color: #007bff;
-  color: white;
+.results .entry .buttons button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .results .entry .buttons .whois:hover {
-  background-color: #0056b3;
-}
-
-.results .entry .buttons .delete {
-  background-color: #dc3545;
-  color: white;
+  color: #007bff;
 }
 
 .results .entry .buttons .delete:hover {
-  background-color: #c82333;
+  color: #dc3545;
 }
 </style>
