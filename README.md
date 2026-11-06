@@ -20,6 +20,9 @@
 
 You can import a list of CIDR or IP addresses from a file (for example, exported from [ip2location Visitor Blocker](https://www.ip2location.com/free/visitor-blocker) in CIDR output format). The web interface allows you to upload and bulk add entries to an ipset set.
 
+- [Google](https://www.gstatic.com/ipranges/goog.txt)
+- [YouTube](https://github.com/touhidurrr/iplist-youtube)
+
 ## Quick Start
 
 ### Local
