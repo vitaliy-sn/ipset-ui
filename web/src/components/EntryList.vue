@@ -4,13 +4,27 @@
       <div class="input-wrapper">
         <input
           v-model="filter"
+          :class="{ 'has-filter': filter }"
           @keyup.enter="searchIpSet"
           type="text"
           placeholder="Empty / IP / CIDR"
         />
         <button v-if="filter" class="clear" title="Clear" @click="clearFilter">×</button>
+        <button class="search-icon" title="Search" @click="searchIpSet">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
       </div>
-      <button @click="searchIpSet">Search</button>
     </div>
     <div v-if="canDeleteAll" class="bulk-actions">
       <span class="count">{{ ipEntries.length }} entries found</span>
@@ -190,7 +204,10 @@ export default {
     const deleteAllConfirmed = async () => {
       isDeleteAllModalVisible.value = false
       try {
-        const message = await ipSetStore.deleteEntriesByFilter(props.selectedSet, ipSetStore.lastFilter)
+        const message = await ipSetStore.deleteEntriesByFilter(
+          props.selectedSet,
+          ipSetStore.lastFilter,
+        )
         // Refresh with the filter that is currently applied to the list
         await ipSetStore.searchIpSet(props.selectedSet, ipSetStore.lastFilter)
         showNotification(message, 'success')
@@ -264,31 +281,58 @@ export default {
 }
 
 .input-group {
-  display: flex;
-  justify-content: space-between;
   margin-bottom: 20px;
 }
 
 .input-wrapper {
   position: relative;
-  flex: 1;
-  min-width: 0;
-  margin-right: 10px;
 }
 
 .input-wrapper input {
   box-sizing: border-box;
   width: 100%;
-  padding: 8px 32px 8px 8px;
+  padding: 8px 36px 8px 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
 }
 
-.input-wrapper .clear {
+.input-wrapper input.has-filter {
+  padding-right: 64px;
+}
+
+.input-wrapper .search-icon {
   position: absolute;
   top: 50%;
   right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #666;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.input-wrapper .search-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.input-wrapper .search-icon:hover {
+  color: #007bff;
+}
+
+.input-wrapper .clear {
+  position: absolute;
+  top: 50%;
+  right: 38px;
   transform: translateY(-50%);
   padding: 2px 6px;
   border: none;
@@ -302,21 +346,6 @@ export default {
 .input-wrapper .clear:hover {
   background: none;
   color: #333;
-}
-
-.input-group button {
-  padding: 8px 16px;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s;
-}
-
-.input-group button:hover {
-  background-color: #0056b3;
 }
 
 .bulk-actions {
