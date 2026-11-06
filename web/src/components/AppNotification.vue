@@ -1,8 +1,11 @@
 <template>
   <transition name="fade">
     <div v-if="isVisible" :class="['notification', type]">
-      <span class="message">{{ message }}</span>
-      <button class="close" aria-label="Close" @click="close">&times;</button>
+      <div class="header">
+        <span class="title">{{ type === 'error' ? 'Error' : 'Success' }}</span>
+        <button class="close" aria-label="Close" @click="close">&times;</button>
+      </div>
+      <div class="message">{{ message }}</div>
     </div>
   </transition>
 </template>
@@ -56,48 +59,61 @@ export default {
   left: 20px;
   box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   padding: 16px 24px;
-  background-color: #323232;
-  border-radius: 4px;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    0 4px 8px rgba(0, 0, 0, 0.2);
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
   z-index: 1000;
   min-width: 300px;
   max-width: 400px;
   max-height: calc(100vh - 40px);
   max-height: calc(100dvh - 40px);
-  overflow-y: auto;
 }
 
-.notification.success .message {
-  color: #4caf50;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex: 0 0 auto;
 }
 
-.notification.error .message {
-  color: #f44336;
+.title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.notification.success .title {
+  color: #28a745;
+}
+
+.notification.error .title {
+  color: #d32f2f;
 }
 
 .message {
-  flex: 1;
   font-size: 16px;
+  color: #333;
   white-space: pre-line;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .close {
-  margin-left: 16px;
   padding: 4px;
   border: none;
   background: transparent;
-  color: #cccccc;
+  color: #9e9e9e;
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
 }
 
 .close:hover {
-  color: #ffffff;
+  color: #333333;
 }
 
 .fade-enter-active,
