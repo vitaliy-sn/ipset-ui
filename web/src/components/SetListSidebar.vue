@@ -1,6 +1,6 @@
 <template>
   <div class="sidebar">
-    <h3>ipset list</h3>
+    <h3>IP Sets</h3>
     <ul class="set-list">
       <li
         v-for="(set, index) in ipSets"
@@ -50,11 +50,10 @@ export default {
 }
 
 .sidebar h3 {
-  margin-top: 0;
+  margin: 0 0 15px;
   font-size: 1.2em;
   color: #333;
   text-align: center;
-  padding: 20px;
 }
 
 .set-list {
