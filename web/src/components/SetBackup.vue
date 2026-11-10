@@ -30,8 +30,35 @@
         <div v-for="backup in ipSetStore.backups" :key="backup" class="entry">
           <span>{{ backup }}</span>
           <div class="buttons">
-            <button @click="confirmRestore(backup)">Restore</button>
-            <button @click="confirmDelete(backup)">Delete</button>
+            <button class="restore" title="Restore" aria-label="Restore" @click="confirmRestore(backup)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+            </button>
+            <button class="delete" title="Delete" aria-label="Delete" @click="confirmDelete(backup)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -271,7 +298,7 @@ export default {
 .input-group button {
   padding: 8px 16px;
   border: none;
-  background-color: #007bff;
+  background-color: #6c757d;
   color: white;
   border-radius: 4px;
   cursor: pointer;
@@ -303,30 +330,29 @@ export default {
 }
 
 .results .entry .buttons button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 10px;
-  padding: 4px 8px;
+  padding: 4px 6px;
   border: none;
   border-radius: 4px;
+  background: none;
+  color: #666;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
+  transition: color 0.2s;
 }
 
-.results .entry .buttons .restore {
-  background-color: #28a745;
-  color: white;
+.results .entry .buttons button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .results .entry .buttons .restore:hover {
-  background-color: #218838;
-}
-
-.results .entry .buttons .delete {
-  background-color: #dc3545;
-  color: white;
+  color: #28a745;
 }
 
 .results .entry .buttons .delete:hover {
-  background-color: #c82333;
+  color: #dc3545;
 }
 </style>

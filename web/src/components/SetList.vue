@@ -5,7 +5,7 @@
         <input v-model="newSetName" type="text" placeholder="Enter new set name" />
         <button v-if="newSetName" class="clear" title="Clear" @click="clearName">×</button>
       </div>
-      <button @click="addSet">Add</button>
+      <button @click="addSet">Create</button>
     </div>
     <div class="results">
       <div v-if="ipSetStore.ipSets.length === 0">No sets available.</div>
@@ -13,8 +13,36 @@
         <div v-for="set in ipSetStore.ipSets" :key="set" class="entry">
           <span>{{ set }}</span>
           <div class="buttons">
-            <button class="backups" @click="toggleBackup(set)">backups</button>
-            <button class="delete" @click="confirmDelete(set)">delete</button>
+            <button class="backups" title="backups" aria-label="backups" @click="toggleBackup(set)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M3 5v14a9 3 0 0 0 18 0V5"></path>
+                <path d="M3 12a9 3 0 0 0 18 0"></path>
+              </svg>
+            </button>
+            <button class="delete" title="Delete" aria-label="Delete" @click="confirmDelete(set)">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -178,7 +206,7 @@ export default {
 .input-group button {
   padding: 8px 16px;
   border: none;
-  background-color: #007bff;
+  background-color: #6c757d;
   color: white;
   border-radius: 4px;
   cursor: pointer;
@@ -210,30 +238,29 @@ export default {
 }
 
 .results .entry .buttons button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 10px;
-  padding: 4px 8px;
+  padding: 4px 6px;
   border: none;
   border-radius: 4px;
+  background: none;
+  color: #666;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.3s;
+  transition: color 0.2s;
 }
 
-.results .entry .buttons .backups {
-  background-color: #28a745;
-  color: white;
+.results .entry .buttons button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .results .entry .buttons .backups:hover {
-  background-color: #218838;
-}
-
-.results .entry .buttons .delete {
-  background-color: #dc3545;
-  color: white;
+  color: #28a745;
 }
 
 .results .entry .buttons .delete:hover {
-  background-color: #c82333;
+  color: #dc3545;
 }
 </style>
