@@ -26,18 +26,24 @@ func addEntry(setName, entry, comment string) error {
 // AddEntries adds multiple entries to the specified ipset set.
 // Returns the number of successfully added entries, the list of failed entries,
 // and a combined error for failed additions.
-func AddEntries(setName string, entries []string, comment string) (int, []string, error) {
+// If progress is not nil, it is called after each processed entry with the
+// number of successfully added entries, the number of processed entries and the total.
+func AddEntries(setName string, entries []string, comment string, progress func(added, processed, total int)) (int, []string, error) {
 	added := 0
 	var failed []string
 	var merr *multierror.Error
+	total := len(entries)
 
-	for _, entry := range entries {
+	for i, entry := range entries {
 		if err := addEntry(setName, entry, comment); err != nil {
 			failed = append(failed, entry)
 			merr = multierror.Append(merr, fmt.Errorf("entry %q: %w", entry, err))
-			continue
+		} else {
+			added++
 		}
-		added++
+		if progress != nil {
+			progress(added, i+1, total)
+		}
 	}
 
 	err := Save(setName)

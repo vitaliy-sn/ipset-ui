@@ -44,6 +44,14 @@
         />
       </div>
     </div>
+    <div v-if="importInProgress && importProgress.total > 0" class="import-progress">
+      <div class="import-progress-bar">
+        <div class="import-progress-fill" :style="{ width: importProgressPercent + '%' }"></div>
+      </div>
+      <span class="import-progress-text">
+        {{ importProgress.processed }} / {{ importProgress.total }} ({{ importProgressPercent }}%)
+      </span>
+    </div>
     <div class="input-group">
       <div class="input-wrapper">
         <input
@@ -123,12 +131,18 @@ export default {
       importFile: null, // Selected file for import
       resolvedDomain: '', // Save domain after lookup
       importInProgress: false, // Flag to disable import button
+      importProgress: { added: 0, processed: 0, total: 0 }, // Live import progress
+      importPollTimer: null, // Interval handle for import progress polling
       isDragOver: false, // Drag & drop highlight state
     }
   },
   computed: {
     ipAddresses() {
       return this.ipSetStore.ipAddresses
+    },
+    importProgressPercent() {
+      if (!this.importProgress.total) return 0
+      return Math.round((this.importProgress.processed / this.importProgress.total) * 100)
     },
   },
   methods: {
@@ -245,16 +259,25 @@ export default {
     async importEntries() {
       if (!this.importFile || !this.selectedSet) return
       this.importInProgress = true // Immediately disable the button
+      this.importProgress = { added: 0, processed: 0, total: 0 }
       const formData = new FormData()
       formData.append('file', this.importFile)
       if (this.comment) {
         formData.append('comment', this.comment)
       }
+      this.startImportPolling()
       try {
         const response = await this.ipSetStore.importFromFile(this.selectedSet, formData)
         if (response.status === 200) {
-          this.notificationType = 'success'
-          this.showNotification('Import successful')
+          if (response.data.failed > 0) {
+            this.notificationType = 'error'
+            this.showNotification(
+              `Imported ${response.data.added} of ${response.data.total} entries`,
+            )
+          } else {
+            this.notificationType = 'success'
+            this.showNotification(`Import successful (${response.data.added} entries added)`)
+          }
           this.importFile = null
           this.comment = ''
           if (this.$refs.fileInput) {
@@ -262,16 +285,38 @@ export default {
           }
         } else {
           this.notificationType = 'error'
-          const errorMsg =
-            response.data && response.data.error ? response.data.error : 'Import failed'
-          this.showNotification(errorMsg)
+          this.showNotification(response.data?.error || 'Import failed')
         }
       } catch (error) {
         console.error('Import entries request failed', error)
         this.notificationType = 'error'
-        this.showNotification(error?.response?.data?.error || 'Import failed')
+        this.showNotification(error?.response?.data?.error || error?.message || 'Import failed')
       } finally {
+        this.stopImportPolling()
         this.importInProgress = false
+        this.importProgress = { added: 0, processed: 0, total: 0 }
+      }
+    },
+    async pollImportProgress() {
+      try {
+        const data = await this.ipSetStore.fetchImportProgress(this.selectedSet)
+        if (data && data.total > 0) {
+          this.importProgress = { added: data.added, processed: data.processed, total: data.total }
+        }
+      } catch {
+        // No import in progress yet (or a transient error) — keep polling
+      }
+    },
+    startImportPolling() {
+      this.pollImportProgress()
+      this.importPollTimer = setInterval(() => {
+        this.pollImportProgress()
+      }, 1000)
+    },
+    stopImportPolling() {
+      if (this.importPollTimer) {
+        clearInterval(this.importPollTimer)
+        this.importPollTimer = null
       }
     },
     async lookupDomain() {
@@ -341,6 +386,9 @@ export default {
   },
   setup() {
     return { ipSetStore: useIpSetStore() }
+  },
+  beforeUnmount() {
+    this.stopImportPolling()
   },
   watch: {
     entry(newEntry, oldEntry) {
@@ -580,6 +628,35 @@ button[disabled] {
 .ip-entry button:hover {
   background-color: #218838;
 }
+.import-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.import-progress-bar {
+  flex: 1;
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.import-progress-fill {
+  height: 100%;
+  background-color: #28a745;
+  border-radius: 4px;
+  transition: width 0.2s;
+}
+
+.import-progress-text {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+}
+
 .import-btn-wrapper {
   display: flex;
   justify-content: flex-end;

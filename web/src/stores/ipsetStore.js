@@ -149,5 +149,14 @@ export const useIpSetStore = defineStore('ipset', {
         throw error
       }
     },
+    async fetchImportProgress(setName) {
+      try {
+        const response = await axios.get(`/ipsets/${setName}/entries/import/progress`)
+        return response.data
+      } catch (error) {
+        console.error('Fetch import progress failed', error)
+        throw error
+      }
+    },
   },
 })

@@ -18,3 +18,17 @@ func List() ([]string, error) {
 	}
 	return sets, nil
 }
+
+// SetExists reports whether a set with the given name exists.
+func SetExists(setName string) (bool, error) {
+	sets, err := List()
+	if err != nil {
+		return false, err
+	}
+	for _, s := range sets {
+		if s == setName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
