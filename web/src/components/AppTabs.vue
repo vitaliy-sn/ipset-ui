@@ -79,7 +79,7 @@ export default {
 
 .tabs button.active {
   background: #fdfdfd;
-  border-bottom: 2px solid #28a745;
+  border-bottom: 2px solid #666;
   font-weight: bold;
 }
 </style>
