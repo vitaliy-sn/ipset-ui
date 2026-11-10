@@ -31,7 +31,7 @@
       <button class="delete-all" @click="confirmDeleteAll">Delete all</button>
     </div>
     <div class="results">
-      <div v-if="ipEntries.length === 0">
+      <div v-if="ipEntries.length === 0 && (errorMessage || hasSearched)">
         {{ errorMessage || 'Entries Not Found' }}
       </div>
       <div v-else>
@@ -184,6 +184,7 @@ export default {
 
     const clearFilter = () => {
       filter.value = ''
+      emit('clear-filter')
     }
 
     const confirmWhois = (entry) => {
@@ -218,6 +219,7 @@ export default {
 
     const isDeleteAllModalVisible = ref(false)
     const canDeleteAll = computed(() => props.ipEntries.length > 0 && ipSetStore.lastFilter !== '')
+    const hasSearched = computed(() => ipSetStore.hasSearched)
     const deleteAllConfirmText = computed(
       () =>
         `Are you sure you want to delete all ${props.ipEntries.length} entries ` +
@@ -283,6 +285,7 @@ export default {
       deleteEntryConfirmed,
       isDeleteAllModalVisible,
       canDeleteAll,
+      hasSearched,
       deleteAllConfirmText,
       confirmDeleteAll,
       deleteAllConfirmed,

@@ -17,6 +17,7 @@
         :errorMessage="ipSetStore.errorMessage"
         :initialFilter="initialFilter"
         @search-ip-set="searchIpSet"
+        @clear-filter="clearFilter"
       />
       <div class="add-entry-container">
         <AddEntry :selectedSet="selectedSet" @check-ip="checkIp" />
@@ -64,7 +65,12 @@ export default {
       ipSetStore.ipEntries = [] // Clear the current entries
       ipSetStore.errorMessage = '' // Clear any error message
       ipSetStore.lastFilter = '' // Reset the applied search filter
+      ipSetStore.hasSearched = false // Reset the "search performed" flag
       router.replace({ query: set ? { set } : {} })
+    }
+
+    const clearFilter = () => {
+      router.replace({ query: selectedSet.value ? { set: selectedSet.value } : {} })
     }
 
     const checkIp = (ip) => {
@@ -101,6 +107,7 @@ export default {
       initialFilter,
       searchIpSet,
       selectSet,
+      clearFilter,
       checkIp,
       goToSets,
     }
