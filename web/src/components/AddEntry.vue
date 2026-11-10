@@ -44,14 +44,13 @@
         />
       </div>
     </div>
-    <div v-if="importInProgress && importProgress.total > 0" class="import-progress">
-      <div class="import-progress-bar">
-        <div class="import-progress-fill" :style="{ width: importProgressPercent + '%' }"></div>
-      </div>
-      <span class="import-progress-text">
-        {{ importProgress.processed }} / {{ importProgress.total }} ({{ importProgressPercent }}%)
-      </span>
-    </div>
+    <ProgressModal
+      :visible="importInProgress"
+      message="Importing entries…"
+      :processed="importProgress.processed"
+      :total="importProgress.total"
+      color="#28a745"
+    />
     <div class="input-group">
       <div class="input-wrapper">
         <input
@@ -110,11 +109,13 @@
 <script>
 import { useIpSetStore } from '../stores/ipsetStore'
 import AppNotification from './AppNotification.vue'
+import ProgressModal from './ProgressModal.vue'
 
 export default {
   name: 'AddEntry',
   components: {
     AppNotification,
+    ProgressModal,
   },
   props: {
     selectedSet: {
@@ -139,10 +140,6 @@ export default {
   computed: {
     ipAddresses() {
       return this.ipSetStore.ipAddresses
-    },
-    importProgressPercent() {
-      if (!this.importProgress.total) return 0
-      return Math.round((this.importProgress.processed / this.importProgress.total) * 100)
     },
   },
   methods: {
@@ -299,7 +296,7 @@ export default {
     },
     async pollImportProgress() {
       try {
-        const data = await this.ipSetStore.fetchImportProgress(this.selectedSet)
+        const data = await this.ipSetStore.fetchOperationProgress(this.selectedSet)
         if (data && data.total > 0) {
           this.importProgress = { added: data.added, processed: data.processed, total: data.total }
         }
@@ -628,35 +625,6 @@ button[disabled] {
 .ip-entry button:hover {
   background-color: #218838;
 }
-.import-progress {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.import-progress-bar {
-  flex: 1;
-  height: 8px;
-  background-color: #eee;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.import-progress-fill {
-  height: 100%;
-  background-color: #28a745;
-  border-radius: 4px;
-  transition: width 0.2s;
-}
-
-.import-progress-text {
-  flex-shrink: 0;
-  font-size: 14px;
-  color: #666;
-  white-space: nowrap;
-}
-
 .import-btn-wrapper {
   display: flex;
   justify-content: flex-end;

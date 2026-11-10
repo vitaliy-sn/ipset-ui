@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,10 +19,16 @@ import (
 
 const fakeIpsetScript = `#!/bin/sh
 if [ "$1" = "list" ]; then
-  if [ "$FAKE_IPSET_SETS" = "empty" ]; then
+  if [ "$2" = "-name" ]; then
+    if [ "$FAKE_IPSET_SETS" = "empty" ]; then
+      exit 0
+    fi
+    echo "testset"
     exit 0
   fi
-  echo "testset"
+  echo "1.1.1.1 comment \"test\""
+  echo "2.2.2.2 comment \"test\""
+  echo "3.3.3.3 comment \"test\""
   exit 0
 fi
 if [ "$1" = "add" ]; then
@@ -34,6 +41,20 @@ if [ "$1" = "add" ]; then
   fi
   if [ -n "$FAKE_IPSET_FAIL" ] && [ "$3" = "$FAKE_IPSET_FAIL" ]; then
     echo "The entry with the given name already exists" >&2
+    exit 1
+  fi
+  exit 0
+fi
+if [ "$1" = "del" ]; then
+  if [ -n "$FAKE_IPSET_DELAY" ]; then
+    sleep "$FAKE_IPSET_DELAY"
+  fi
+  if [ -n "$FAKE_IPSET_FAIL_ALL" ]; then
+    echo "The entry with the given name does not exist in the set" >&2
+    exit 1
+  fi
+  if [ -n "$FAKE_IPSET_FAIL" ] && [ "$3" = "$FAKE_IPSET_FAIL" ]; then
+    echo "The entry with the given name does not exist in the set" >&2
     exit 1
   fi
   exit 0
@@ -52,16 +73,17 @@ func setupFakeIpset(t *testing.T) {
 	os.Setenv("PATH", binDir+string(os.PathListSeparator)+oldPath)
 }
 
-func resetImportProgress() {
-	setImportProgress(nil)
+func resetOperationProgress() {
+	setOperationProgress(nil)
 }
 
-func newImportRouter() *gin.Engine {
+func newTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	c := NewIPSetController()
 	r.POST("/api/v1/ipsets/:setName/entries/import", c.ImportEntries)
-	r.GET("/api/v1/ipsets/:setName/entries/import/progress", c.GetImportProgress)
+	r.DELETE("/api/v1/ipsets/:setName/entries/bulk", c.DeleteEntries)
+	r.GET("/api/v1/ipsets/:setName/entries/progress", c.GetOperationProgress)
 	return r
 }
 
@@ -88,33 +110,60 @@ func newImportRequest(t *testing.T, setName, content string) *http.Request {
 	return req
 }
 
-func doImport(t *testing.T, r *gin.Engine, setName, content string) *httptest.ResponseRecorder {
+func newDeleteRequest(t *testing.T, setName, filter string) *http.Request {
+	t.Helper()
+	body := `{"filter":` + strconv.Quote(filter) + `}`
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/ipsets/"+setName+"/entries/bulk", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+func doRequest(t *testing.T, r *gin.Engine, req *http.Request) *httptest.ResponseRecorder {
 	t.Helper()
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, newImportRequest(t, setName, content))
+	r.ServeHTTP(w, req)
 	return w
 }
 
-// runImportAsync starts the import in a goroutine; the response recorder is
+// runRequestAsync runs the request in a goroutine; the response recorder is
 // delivered on the returned channel when the request completes.
-func runImportAsync(t *testing.T, r *gin.Engine, setName, content string) <-chan *httptest.ResponseRecorder {
+func runRequestAsync(t *testing.T, r *gin.Engine, req *http.Request) <-chan *httptest.ResponseRecorder {
 	t.Helper()
 	result := make(chan *httptest.ResponseRecorder, 1)
 	go func() {
 		rec := httptest.NewRecorder()
-		r.ServeHTTP(rec, newImportRequest(t, setName, content))
+		r.ServeHTTP(rec, req)
 		result <- rec
 	}()
 	return result
 }
 
+// waitForCompletion polls until the async request finishes, calling poll on
+// every iteration.
+func waitForCompletion(t *testing.T, result <-chan *httptest.ResponseRecorder, poll func()) *httptest.ResponseRecorder {
+	t.Helper()
+	var w *httptest.ResponseRecorder
+	deadline := time.Now().Add(15 * time.Second)
+	for w == nil && time.Now().Before(deadline) {
+		poll()
+		select {
+		case w = <-result:
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+	if w == nil {
+		t.Fatal("request did not complete in time")
+	}
+	return w
+}
+
 func TestImportEntriesSuccess(t *testing.T) {
 	setupFakeIpset(t)
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	w := doImport(t, r, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n")
+	w := doRequest(t, r, newImportRequest(t, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n"))
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
@@ -123,11 +172,12 @@ func TestImportEntriesSuccess(t *testing.T) {
 		t.Fatalf("unexpected body: %q", body)
 	}
 
-	progress := getImportProgress()
+	progress := getOperationProgress()
 	if progress == nil {
-		t.Fatal("expected import progress state after import")
+		t.Fatal("expected operation progress state after import")
 	}
-	if !progress.Done || progress.Total != 3 || progress.Processed != 3 || progress.Added != 3 || progress.Error != "" {
+	if progress.Operation != "import" || !progress.Done || progress.Total != 3 ||
+		progress.Processed != 3 || progress.Changed != 3 || progress.Error != "" {
 		t.Fatalf("unexpected final progress: %+v", progress)
 	}
 }
@@ -135,37 +185,26 @@ func TestImportEntriesSuccess(t *testing.T) {
 func TestImportEntriesProgressWhileRunning(t *testing.T) {
 	setupFakeIpset(t)
 	t.Setenv("FAKE_IPSET_DELAY", "0.2")
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	result := runImportAsync(t, r, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n")
+	result := runRequestAsync(t, r, newImportRequest(t, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n"))
 
 	sawPartialState := false
 	sawHTTPProgress := false
-	var w *httptest.ResponseRecorder
-	deadline := time.Now().Add(15 * time.Second)
-	for w == nil && time.Now().Before(deadline) {
-		progress := getImportProgress()
+	w := waitForCompletion(t, result, func() {
+		progress := getOperationProgress()
 		if progress != nil && !progress.Done && progress.Processed > 0 && progress.Processed < progress.Total {
 			sawPartialState = true
 		}
 		if progress != nil && !progress.Done && progress.Total == 3 {
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/ipsets/testset/entries/import/progress", nil)
-			pw := httptest.NewRecorder()
-			r.ServeHTTP(pw, req)
+			pw := doRequest(t, r, httptest.NewRequest(http.MethodGet, "/api/v1/ipsets/testset/entries/progress", nil))
 			if pw.Code == http.StatusOK && strings.Contains(pw.Body.String(), `"total":3`) {
 				sawHTTPProgress = true
 			}
 		}
-		select {
-		case w = <-result:
-		case <-time.After(20 * time.Millisecond):
-		}
-	}
-	if w == nil {
-		t.Fatal("import did not complete in time")
-	}
+	})
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
@@ -184,11 +223,11 @@ func TestImportEntriesProgressWhileRunning(t *testing.T) {
 func TestImportEntriesPartialFailure(t *testing.T) {
 	setupFakeIpset(t)
 	t.Setenv("FAKE_IPSET_FAIL", "2.2.2.2")
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	w := doImport(t, r, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n")
+	w := doRequest(t, r, newImportRequest(t, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n"))
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
@@ -199,8 +238,8 @@ func TestImportEntriesPartialFailure(t *testing.T) {
 		t.Fatalf("unexpected body: %q", body)
 	}
 
-	progress := getImportProgress()
-	if progress == nil || !progress.Done || progress.Added != 2 {
+	progress := getOperationProgress()
+	if progress == nil || !progress.Done || progress.Changed != 2 {
 		t.Fatalf("unexpected final progress: %+v", progress)
 	}
 }
@@ -208,11 +247,11 @@ func TestImportEntriesPartialFailure(t *testing.T) {
 func TestImportEntriesTotalFailure(t *testing.T) {
 	setupFakeIpset(t)
 	t.Setenv("FAKE_IPSET_FAIL_ALL", "1")
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	w := doImport(t, r, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n")
+	w := doRequest(t, r, newImportRequest(t, "testset", "1.1.1.1\n2.2.2.2\n3.3.3.3\n"))
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
@@ -225,26 +264,137 @@ func TestImportEntriesTotalFailure(t *testing.T) {
 		t.Fatalf("error message should be truncated, got: %q", body)
 	}
 
-	progress := getImportProgress()
-	if progress == nil || !progress.Done || progress.Added != 0 || progress.Error == "" {
+	progress := getOperationProgress()
+	if progress == nil || !progress.Done || progress.Changed != 0 || progress.Error == "" {
 		t.Fatalf("unexpected final progress: %+v", progress)
 	}
 }
 
-func TestGetImportProgressNone(t *testing.T) {
+func TestDeleteEntriesSuccess(t *testing.T) {
 	setupFakeIpset(t)
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/ipsets/testset/entries/import/progress", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
+	w := doRequest(t, r, newDeleteRequest(t, "testset", "test"))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
+	}
+	if body := w.Body.String(); !strings.Contains(body, `"deleted":3`) || !strings.Contains(body, "Deleted 3 entries") {
+		t.Fatalf("unexpected body: %q", body)
+	}
+
+	progress := getOperationProgress()
+	if progress == nil {
+		t.Fatal("expected operation progress state after delete")
+	}
+	if progress.Operation != "delete" || !progress.Done || progress.Total != 3 ||
+		progress.Processed != 3 || progress.Changed != 3 || progress.Error != "" {
+		t.Fatalf("unexpected final progress: %+v", progress)
+	}
+}
+
+func TestDeleteEntriesProgressWhileRunning(t *testing.T) {
+	setupFakeIpset(t)
+	t.Setenv("FAKE_IPSET_DELAY", "0.2")
+	resetOperationProgress()
+	config.Config.AppDir = t.TempDir()
+	r := newTestRouter()
+
+	result := runRequestAsync(t, r, newDeleteRequest(t, "testset", "test"))
+
+	sawPartialState := false
+	sawHTTPProgress := false
+	w := waitForCompletion(t, result, func() {
+		progress := getOperationProgress()
+		if progress == nil || progress.Operation != "delete" {
+			return
+		}
+		if !progress.Done && progress.Processed > 0 && progress.Processed < progress.Total {
+			sawPartialState = true
+		}
+		if !progress.Done && progress.Total == 3 {
+			pw := doRequest(t, r, httptest.NewRequest(http.MethodGet, "/api/v1/ipsets/testset/entries/progress", nil))
+			if pw.Code == http.StatusOK &&
+				strings.Contains(pw.Body.String(), `"total":3`) &&
+				strings.Contains(pw.Body.String(), `"operation":"delete"`) {
+				sawHTTPProgress = true
+			}
+		}
+	})
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), `"deleted":3`) {
+		t.Fatalf("unexpected body: %q", w.Body.String())
+	}
+	if !sawPartialState {
+		t.Fatal("did not observe partial progress state while the delete was running")
+	}
+	if !sawHTTPProgress {
+		t.Fatal("did not observe the progress endpoint reporting the running delete")
+	}
+}
+
+func TestDeleteEntriesPartialFailure(t *testing.T) {
+	setupFakeIpset(t)
+	t.Setenv("FAKE_IPSET_FAIL", "2.2.2.2")
+	resetOperationProgress()
+	config.Config.AppDir = t.TempDir()
+	r := newTestRouter()
+
+	w := doRequest(t, r, newDeleteRequest(t, "testset", "test"))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `"deleted":2`) || !strings.Contains(body, "Deleted 2 of 3 entries") {
+		t.Fatalf("unexpected body: %q", body)
+	}
+
+	progress := getOperationProgress()
+	if progress == nil || !progress.Done || progress.Changed != 2 || progress.Error == "" {
+		t.Fatalf("unexpected final progress: %+v", progress)
+	}
+}
+
+func TestDeleteEntriesTotalFailure(t *testing.T) {
+	setupFakeIpset(t)
+	t.Setenv("FAKE_IPSET_FAIL_ALL", "1")
+	resetOperationProgress()
+	config.Config.AppDir = t.TempDir()
+	r := newTestRouter()
+
+	w := doRequest(t, r, newDeleteRequest(t, "testset", "test"))
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
+	}
+	if body := w.Body.String(); !strings.Contains(body, `entry \"1.1.1.1\"`) || len(body) > 400 {
+		t.Fatalf("unexpected error body: %q", body)
+	}
+
+	progress := getOperationProgress()
+	if progress == nil || !progress.Done || progress.Changed != 0 || progress.Error == "" {
+		t.Fatalf("unexpected final progress: %+v", progress)
+	}
+}
+
+func TestGetOperationProgressNone(t *testing.T) {
+	setupFakeIpset(t)
+	resetOperationProgress()
+	config.Config.AppDir = t.TempDir()
+	r := newTestRouter()
+
+	w := doRequest(t, r, httptest.NewRequest(http.MethodGet, "/api/v1/ipsets/testset/entries/progress", nil))
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), "no import in progress") {
+	if !strings.Contains(w.Body.String(), "no operation in progress") {
 		t.Fatalf("unexpected body: %q", w.Body.String())
 	}
 }
@@ -252,11 +402,11 @@ func TestGetImportProgressNone(t *testing.T) {
 func TestImportEntriesSetNotFound(t *testing.T) {
 	setupFakeIpset(t)
 	t.Setenv("FAKE_IPSET_SETS", "empty")
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	w := doImport(t, r, "testset", "1.1.1.1\n")
+	w := doRequest(t, r, newImportRequest(t, "testset", "1.1.1.1\n"))
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())
@@ -268,11 +418,11 @@ func TestImportEntriesSetNotFound(t *testing.T) {
 
 func TestImportEntriesEmptyFile(t *testing.T) {
 	setupFakeIpset(t)
-	resetImportProgress()
+	resetOperationProgress()
 	config.Config.AppDir = t.TempDir()
-	r := newImportRouter()
+	r := newTestRouter()
 
-	w := doImport(t, r, "testset", "# only a comment\n\n")
+	w := doRequest(t, r, newImportRequest(t, "testset", "# only a comment\n\n"))
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %q", w.Code, w.Body.String())

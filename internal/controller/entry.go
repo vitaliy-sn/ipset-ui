@@ -107,9 +107,19 @@ func (c *IPSetController) DeleteEntries(ctx *gin.Context) {
 		names = append(names, entry.Entry)
 	}
 
-	deleted, failed, err := ipset.DeleteEntries(setName, names)
+	total := len(names)
+	setOperationProgress(&OperationProgress{Operation: "delete", SetName: setName, Total: total})
+
+	deleted, failed, err := ipset.DeleteEntries(setName, names, func(deleted, processed, total int) {
+		updateOperationProgress(deleted, processed)
+	})
+	errMessage := ""
+	if err != nil {
+		errMessage = truncateMessage(err.Error())
+	}
+	finishOperationProgress(deleted, total, errMessage)
 	if err != nil && deleted == 0 {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": errMessage})
 		return
 	}
 
@@ -172,10 +182,10 @@ func (c *IPSetController) ImportEntries(ctx *gin.Context) {
 	}
 
 	total := len(entries)
-	setImportProgress(&ImportProgress{SetName: setName, Total: total})
+	setOperationProgress(&OperationProgress{Operation: "import", SetName: setName, Total: total})
 
 	added, failed, err := ipset.AddEntries(setName, entries, comment, func(added, processed, total int) {
-		updateImportProgress(added, processed)
+		updateOperationProgress(added, processed)
 	})
 
 	errMessage := ""
@@ -190,7 +200,7 @@ func (c *IPSetController) ImportEntries(ctx *gin.Context) {
 		)
 	}
 
-	finishImportProgress(added, total, errMessage)
+	finishOperationProgress(added, total, errMessage)
 
 	if err != nil {
 		// Partial success is reported as a completed import with failures;

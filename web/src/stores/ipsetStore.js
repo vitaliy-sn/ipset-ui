@@ -60,7 +60,7 @@ export const useIpSetStore = defineStore('ipset', {
         const response = await axios.delete(`/ipsets/${setName}/entries/bulk`, {
           data: { filter },
         })
-        return response.data.message
+        return response.data
       } catch (error) {
         console.error('Bulk delete entries request failed', error)
         throw error
@@ -149,12 +149,12 @@ export const useIpSetStore = defineStore('ipset', {
         throw error
       }
     },
-    async fetchImportProgress(setName) {
+    async fetchOperationProgress(setName) {
       try {
-        const response = await axios.get(`/ipsets/${setName}/entries/import/progress`)
+        const response = await axios.get(`/ipsets/${setName}/entries/progress`)
         return response.data
       } catch (error) {
-        console.error('Fetch import progress failed', error)
+        console.error('Fetch operation progress failed', error)
         throw error
       }
     },

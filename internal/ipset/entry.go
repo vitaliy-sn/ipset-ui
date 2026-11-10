@@ -74,18 +74,24 @@ func DeleteEntry(setName, entry string) error {
 // DeleteEntries removes multiple entries from the specified ipset set.
 // Returns the number of successfully deleted entries, the list of failed entries,
 // and a combined error for failed deletions.
-func DeleteEntries(setName string, entries []string) (int, []string, error) {
+// If progress is not nil, it is called after each processed entry with the
+// number of successfully deleted entries, the number of processed entries and the total.
+func DeleteEntries(setName string, entries []string, progress func(deleted, processed, total int)) (int, []string, error) {
 	deleted := 0
 	var failed []string
 	var merr *multierror.Error
+	total := len(entries)
 
-	for _, entry := range entries {
+	for i, entry := range entries {
 		if err := deleteEntry(setName, entry); err != nil {
 			failed = append(failed, entry)
 			merr = multierror.Append(merr, fmt.Errorf("entry %q: %w", entry, err))
-			continue
+		} else {
+			deleted++
 		}
-		deleted++
+		if progress != nil {
+			progress(deleted, i+1, total)
+		}
 	}
 
 	if err := Save(setName); err != nil {

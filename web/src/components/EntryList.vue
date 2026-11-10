@@ -28,7 +28,7 @@
     </div>
     <div v-if="canDeleteAll" class="bulk-actions">
       <span class="count">{{ ipEntries.length }} entries found</span>
-      <button class="delete-all" @click="confirmDeleteAll">Delete all</button>
+      <button class="delete-all" :disabled="deleteInProgress" @click="confirmDeleteAll">Delete all</button>
     </div>
     <div class="results">
       <div v-if="ipEntries.length === 0 && (errorMessage || hasSearched)">
@@ -108,6 +108,12 @@
         }
       "
     />
+    <ProgressModal
+      :visible="deleteInProgress"
+      message="Deleting entries…"
+      :processed="deleteProgress.processed"
+      :total="deleteProgress.total"
+    />
     <AppNotification
       v-if="notificationMessage"
       :message="notificationMessage"
@@ -118,9 +124,10 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import WhoisModal from './WhoisModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
+import ProgressModal from './ProgressModal.vue'
 import AppNotification from './AppNotification.vue'
 import axios from '../axios'
 import { useIpSetStore } from '../stores/ipsetStore'
@@ -130,6 +137,7 @@ export default {
   components: {
     WhoisModal,
     ConfirmModal,
+    ProgressModal,
     AppNotification,
   },
   props: {
@@ -220,30 +228,76 @@ export default {
     const isDeleteAllModalVisible = ref(false)
     const canDeleteAll = computed(() => props.ipEntries.length > 0 && ipSetStore.lastFilter !== '')
     const hasSearched = computed(() => ipSetStore.hasSearched)
-    const deleteAllConfirmText = computed(
-      () =>
-        `Are you sure you want to delete all ${props.ipEntries.length} entries ` +
-        `matching "${ipSetStore.lastFilter}"? This action cannot be undone.`,
-    )
 
     const confirmDeleteAll = () => {
       if (!canDeleteAll.value) return
       isDeleteAllModalVisible.value = true
     }
 
+    const deleteInProgress = ref(false)
+    const deleteProgress = ref({ deleted: 0, processed: 0, total: 0 })
+    const deletePollTimer = ref(null)
+
+    const deleteAllConfirmText = computed(
+      () =>
+        `Are you sure you want to delete all ${props.ipEntries.length} entries ` +
+        `matching "${ipSetStore.lastFilter}"? This action cannot be undone.`,
+    )
+
+    const pollDeleteProgress = async () => {
+      try {
+        const data = await ipSetStore.fetchOperationProgress(props.selectedSet)
+        if (data && data.total > 0 && data.operation === 'delete') {
+          deleteProgress.value = {
+            deleted: data.changed,
+            processed: data.processed,
+            total: data.total,
+          }
+        }
+      } catch {
+        // No operation in progress yet (or a transient error) — keep polling
+      }
+    }
+
+    const startDeletePolling = () => {
+      pollDeleteProgress()
+      deletePollTimer.value = setInterval(() => {
+        pollDeleteProgress()
+      }, 1000)
+    }
+
+    const stopDeletePolling = () => {
+      if (deletePollTimer.value) {
+        clearInterval(deletePollTimer.value)
+        deletePollTimer.value = null
+      }
+    }
+
+    onBeforeUnmount(() => {
+      stopDeletePolling()
+    })
+
     const deleteAllConfirmed = async () => {
       isDeleteAllModalVisible.value = false
+      deleteInProgress.value = true
+      deleteProgress.value = { deleted: 0, processed: 0, total: 0 }
+      startDeletePolling()
       try {
-        const message = await ipSetStore.deleteEntriesByFilter(
-          props.selectedSet,
-          ipSetStore.lastFilter,
-        )
+        const data = await ipSetStore.deleteEntriesByFilter(props.selectedSet, ipSetStore.lastFilter)
         // Refresh with the filter that is currently applied to the list
         await ipSetStore.searchIpSet(props.selectedSet, ipSetStore.lastFilter)
-        showNotification(message, 'success')
+        if ((data.failed || []).length > 0) {
+          showNotification(`Deleted ${data.deleted} of ${data.total} entries`, 'error')
+        } else {
+          showNotification(data.message, 'success')
+        }
       } catch (error) {
         console.error('Bulk delete request failed', error)
-        showNotification('Error deleting entries', 'error')
+        showNotification(error?.response?.data?.error || 'Error deleting entries', 'error')
+      } finally {
+        stopDeletePolling()
+        deleteInProgress.value = false
+        deleteProgress.value = { deleted: 0, processed: 0, total: 0 }
       }
     }
 
@@ -289,6 +343,8 @@ export default {
       deleteAllConfirmText,
       confirmDeleteAll,
       deleteAllConfirmed,
+      deleteInProgress,
+      deleteProgress,
       showNotification,
       // Новые для подтверждения Whois
       isWhoisConfirmVisible,
@@ -404,6 +460,11 @@ export default {
 
 .bulk-actions .delete-all:hover {
   background-color: #5a6268;
+}
+
+.bulk-actions .delete-all:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .results .entry {
