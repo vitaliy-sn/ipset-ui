@@ -7,7 +7,7 @@
           :class="{ 'has-filter': filter }"
           @keyup.enter="searchIpSet"
           type="text"
-          placeholder="Empty / IP / CIDR"
+          placeholder="Empty / IP / CIDR / Comment"
         />
         <button v-if="filter" class="clear" title="Clear" @click="clearFilter">×</button>
         <button class="search-icon" title="Search" @click="searchIpSet">
