@@ -13,7 +13,8 @@
           <input
             v-model="entry"
             type="text"
-            placeholder="IP / CIDR / Domain — multiple can be separated by space or comma"
+            placeholder="IP / CIDR / Domain"
+            title="Multiple IPs or CIDRs can be added at once — separate with a space or comma."
           />
           <button v-if="entry" class="clear" title="Clear" @click="clearEntry">×</button>
         </div>
