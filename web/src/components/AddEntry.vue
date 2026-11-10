@@ -1,125 +1,105 @@
 <template>
   <div class="add-entry">
-    <div class="tabs">
-      <button :class="{ active: activeTab === 'add' }" @click="activeTab = 'add'">Add</button>
-      <button :class="{ active: activeTab === 'import' }" @click="activeTab = 'import'">
-        Import
+    <h3>Add New Entry</h3>
+    <div class="input-group">
+      <div
+        class="file-drop"
+        :class="{
+          empty: !importFile,
+          'is-dragover': isDragOver,
+          disabled: importInProgress || entry !== '',
+        }"
+        @click="triggerFileInput"
+        @dragover.prevent="onDragOver"
+        @dragleave="onDragLeave"
+        @drop.prevent="onDrop"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <span v-if="!importFile" class="file-hint">
+          <span class="file-hint-main">Select file</span>
+          <span class="file-hint-sub">or drag &amp; drop</span>
+        </span>
+        <template v-else>
+          <span class="file-name" :title="importFile.name">{{ importFile.name }}</span>
+          <span class="file-size">{{ formatFileSize(importFile.size) }}</span>
+          <button class="clear" title="Remove file" @click.stop="clearImportFile">×</button>
+        </template>
+        <input
+          type="file"
+          ref="fileInput"
+          @change="onFileChange"
+          style="display: none"
+          :disabled="importInProgress || entry !== ''"
+        />
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <input
+          v-model="entry"
+          type="text"
+          placeholder="IP / CIDR / Domain"
+          title="Multiple IPs or CIDRs can be added at once — separate with a space or comma."
+          :disabled="importInProgress || importFile !== null"
+        />
+        <button v-if="entry && !importFile" class="clear" title="Clear" @click="clearEntry">×</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <input
+          v-model="comment"
+          type="text"
+          placeholder="Comment (optional)"
+          :disabled="importInProgress"
+        />
+        <button v-if="comment" class="clear" title="Clear" @click="clearComment">×</button>
+      </div>
+    </div>
+    <div class="import-btn-wrapper">
+      <button v-if="importFile" :disabled="importInProgress" @click.prevent="importEntries">Import</button>
+      <button
+        v-else-if="entry && isDomain(entry) && ipAddresses.length === 0"
+        @click.prevent="lookupDomain"
+      >
+        Lookup
       </button>
+      <button
+        v-else-if="entry && isDomain(entry) && ipAddresses.length > 0"
+        @click.prevent="addAllEntries"
+      >
+        Add All
+      </button>
+      <button v-else :disabled="!entry || importInProgress" @click.prevent="addEntry(entry)">Add</button>
     </div>
-    <div v-if="activeTab === 'add'">
-      <h3>Add New Entry</h3>
-      <div class="input-group">
-        <div class="input-wrapper">
-          <input
-            v-model="entry"
-            type="text"
-            placeholder="IP / CIDR / Domain"
-            title="Multiple IPs or CIDRs can be added at once — separate with a space or comma."
-          />
-          <button v-if="entry" class="clear" title="Clear" @click="clearEntry">×</button>
-        </div>
+    <div class="ip-list" v-if="ipAddresses.length > 0">
+      <div v-for="(ip, index) in ipAddresses" :key="index" class="ip-entry">
+        <span>{{ ip }}</span>
+        <button @click.prevent="checkIp(ip)">Check</button>
+        <button @click.prevent="addEntry(ip, comment)">Add</button>
       </div>
-      <div class="input-group">
-        <div class="input-wrapper">
-          <input v-model="comment" type="text" placeholder="Comment (optional)" />
-          <button v-if="comment" class="clear" title="Clear" @click="clearComment">×</button>
-        </div>
-      </div>
-      <div class="import-btn-wrapper">
-        <button v-if="!entry || !isDomain(entry)" @click.prevent="addEntry(entry)">Add</button>
-        <button
-          v-if="entry && isDomain(entry) && ipAddresses.length === 0"
-          @click.prevent="lookupDomain"
-        >
-          Lookup
-        </button>
-        <button
-          v-if="entry && isDomain(entry) && ipAddresses.length > 0"
-          @click.prevent="addAllEntries"
-        >
-          Add All
-        </button>
-      </div>
-      <div class="ip-list" v-if="ipAddresses.length > 0">
-        <div v-for="(ip, index) in ipAddresses" :key="index" class="ip-entry">
-          <span>{{ ip }}</span>
-          <button @click.prevent="checkIp(ip)">Check</button>
-          <button @click.prevent="addEntry(ip, comment)">Add</button>
-        </div>
-      </div>
-      <AppNotification
-        v-if="notificationMessage"
-        :message="notificationMessage"
-        :type="notificationType"
-        @close="notificationMessage = ''"
-      />
     </div>
-    <div v-else-if="activeTab === 'import'">
-      <h3>Import from file</h3>
-      <div class="input-group">
-        <div
-          class="file-drop"
-          :class="{
-            empty: !importFile,
-            'is-dragover': isDragOver,
-            disabled: importInProgress,
-          }"
-          @click="triggerFileInput"
-          @dragover.prevent="onDragOver"
-          @dragleave="onDragLeave"
-          @drop.prevent="onDrop"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-          </svg>
-          <span v-if="!importFile" class="file-hint">
-            <span class="file-hint-main">Select file</span>
-            <span class="file-hint-sub">or drag &amp; drop</span>
-          </span>
-          <template v-else>
-            <span class="file-name" :title="importFile.name">{{ importFile.name }}</span>
-            <span class="file-size">{{ formatFileSize(importFile.size) }}</span>
-            <button class="clear" title="Remove file" @click.stop="clearImportFile">×</button>
-          </template>
-          <input
-            type="file"
-            ref="fileInput"
-            @change="onFileChange"
-            style="display: none"
-            :disabled="importInProgress"
-          />
-        </div>
-      </div>
-      <div class="input-group">
-        <div class="input-wrapper">
-          <input v-model="importComment" type="text" placeholder="Comment (optional)" />
-          <button v-if="importComment" class="clear" title="Clear" @click="clearImportComment">×</button>
-        </div>
-      </div>
-      <div class="import-btn-wrapper">
-        <button :disabled="!importFile || importInProgress" @click="importEntries">Import</button>
-      </div>
-      <AppNotification
-        v-if="notificationMessage"
-        :message="notificationMessage"
-        :type="notificationType"
-        @close="notificationMessage = ''"
-      />
-    </div>
+    <AppNotification
+      v-if="notificationMessage"
+      :message="notificationMessage"
+      :type="notificationType"
+      @close="notificationMessage = ''"
+    />
   </div>
 </template>
 
 <script>
-import { watch } from 'vue'
 import { useIpSetStore } from '../stores/ipsetStore'
 import AppNotification from './AppNotification.vue'
 
@@ -140,18 +120,13 @@ export default {
       comment: '',
       notificationMessage: '',
       notificationType: 'success', // Default type
-      activeTab: 'add', // Added state for tab
-      importFile: null, // Added for reactive file import
-      importComment: '', // For comment during import
+      importFile: null, // Selected file for import
       resolvedDomain: '', // Save domain after lookup
       importInProgress: false, // Flag to disable import button
       isDragOver: false, // Drag & drop highlight state
     }
   },
   computed: {
-    ipSets() {
-      return this.ipSetStore.ipSets
-    },
     ipAddresses() {
       return this.ipSetStore.ipAddresses
     },
@@ -162,9 +137,6 @@ export default {
     },
     clearComment() {
       this.comment = ''
-    },
-    clearImportComment() {
-      this.importComment = ''
     },
     async addEntry(ip = this.entry, comment = this.comment) {
       if (this.selectedSet && ip) {
@@ -221,7 +193,7 @@ export default {
     },
     onFileChange(event) {
       const files = event.target.files
-      if (files && files.length > 0) {
+      if (files && files.length > 0 && !this.entry) {
         this.setImportFile(files[0])
       } else {
         this.importFile = null
@@ -232,19 +204,21 @@ export default {
     setImportFile(file) {
       this.importFile = file
       // If comment is empty — use file name as comment
-      if (!this.importComment) {
-        this.importComment = file.name
+      if (!this.comment) {
+        this.comment = file.name
       }
     },
     clearImportFile() {
-      if (this.importFile && this.importComment === this.importFile.name) {
-        this.importComment = ''
+      if (this.importFile && this.comment === this.importFile.name) {
+        this.comment = ''
       }
       this.importFile = null
-      this.$refs.fileInput.value = ''
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
     },
     onDragOver() {
-      if (this.importInProgress) return
+      if (this.importInProgress || this.entry) return
       this.isDragOver = true
     },
     onDragLeave(event) {
@@ -252,7 +226,7 @@ export default {
       this.isDragOver = false
     },
     onDrop(event) {
-      if (this.importInProgress) return
+      if (this.importInProgress || this.entry) return
       this.isDragOver = false
       const file = event.dataTransfer && event.dataTransfer.files[0]
       if (file) {
@@ -265,7 +239,7 @@ export default {
       return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     },
     triggerFileInput() {
-      if (this.importInProgress) return
+      if (this.importInProgress || this.entry) return
       this.$refs.fileInput.click()
     },
     async importEntries() {
@@ -273,8 +247,8 @@ export default {
       this.importInProgress = true // Immediately disable the button
       const formData = new FormData()
       formData.append('file', this.importFile)
-      if (this.importComment) {
-        formData.append('comment', this.importComment)
+      if (this.comment) {
+        formData.append('comment', this.comment)
       }
       try {
         const response = await this.ipSetStore.importFromFile(this.selectedSet, formData)
@@ -282,8 +256,10 @@ export default {
           this.notificationType = 'success'
           this.showNotification('Import successful')
           this.importFile = null
-          this.importComment = ''
-          this.$refs.fileInput.value = ''
+          this.comment = ''
+          if (this.$refs.fileInput) {
+            this.$refs.fileInput.value = ''
+          }
         } else {
           this.notificationType = 'error'
           const errorMsg =
@@ -364,19 +340,7 @@ export default {
     },
   },
   setup() {
-    const ipSetStore = useIpSetStore()
-
-    // Watcher for entry field
-    watch(
-      () => ipSetStore.entry,
-      (newEntry, oldEntry) => {
-        if (oldEntry && ipSetStore.isDomain(oldEntry) && newEntry !== oldEntry) {
-          ipSetStore.ipAddresses = []
-        }
-      },
-    )
-
-    return { ipSetStore }
+    return { ipSetStore: useIpSetStore() }
   },
   watch: {
     entry(newEntry, oldEntry) {
@@ -397,29 +361,11 @@ export default {
   background-color: #ffffff;
 }
 
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-}
-
-.tabs button {
-  flex: 1;
-  padding: 10px 0;
-  border: none;
-  background: #efefef;
+.add-entry h3 {
+  margin: 0 0 15px;
+  font-size: 1.2em;
   color: #333;
-  font-size: 16px;
-  cursor: pointer;
-  border-bottom: 2px solid #ccc;
-  transition:
-    background 0.2s,
-    border-bottom 0.2s;
-}
-
-.tabs button.active {
-  background: #fdfdfd;
-  border-bottom: 2px solid #28a745;
-  font-weight: bold;
+  text-align: center;
 }
 
 input[type='file'] {
