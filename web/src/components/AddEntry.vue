@@ -58,19 +58,46 @@
       <h3>Import from file</h3>
       <div class="input-group">
         <div
-          class="custom-file-input"
-          :class="{ disabled: importInProgress }"
+          class="file-drop"
+          :class="{
+            empty: !importFile,
+            'is-dragover': isDragOver,
+            disabled: importInProgress,
+          }"
           @click="triggerFileInput"
+          @dragover.prevent="onDragOver"
+          @dragleave="onDragLeave"
+          @drop.prevent="onDrop"
         >
-          <span>{{ importFile ? importFile.name : 'Select file...' }}</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span v-if="!importFile" class="file-hint">
+            <span class="file-hint-main">Select file</span>
+            <span class="file-hint-sub">or drag &amp; drop</span>
+          </span>
+          <template v-else>
+            <span class="file-name" :title="importFile.name">{{ importFile.name }}</span>
+            <span class="file-size">{{ formatFileSize(importFile.size) }}</span>
+            <button class="clear" title="Remove file" @click.stop="clearImportFile">×</button>
+          </template>
+          <input
+            type="file"
+            ref="fileInput"
+            @change="onFileChange"
+            style="display: none"
+            :disabled="importInProgress"
+          />
         </div>
-        <input
-          type="file"
-          ref="fileInput"
-          @change="onFileChange"
-          style="display: none"
-          :disabled="importInProgress"
-        />
       </div>
       <div class="input-group">
         <div class="input-wrapper">
@@ -118,6 +145,7 @@ export default {
       importComment: '', // For comment during import
       resolvedDomain: '', // Save domain after lookup
       importInProgress: false, // Flag to disable import button
+      isDragOver: false, // Drag & drop highlight state
     }
   },
   computed: {
@@ -194,14 +222,47 @@ export default {
     onFileChange(event) {
       const files = event.target.files
       if (files && files.length > 0) {
-        this.importFile = files[0]
-        // If comment is empty — use file name as comment
-        if (!this.importComment) {
-          this.importComment = files[0].name
-        }
+        this.setImportFile(files[0])
       } else {
         this.importFile = null
       }
+      // Reset so re-selecting the same file fires change again
+      event.target.value = ''
+    },
+    setImportFile(file) {
+      this.importFile = file
+      // If comment is empty — use file name as comment
+      if (!this.importComment) {
+        this.importComment = file.name
+      }
+    },
+    clearImportFile() {
+      if (this.importFile && this.importComment === this.importFile.name) {
+        this.importComment = ''
+      }
+      this.importFile = null
+      this.$refs.fileInput.value = ''
+    },
+    onDragOver() {
+      if (this.importInProgress) return
+      this.isDragOver = true
+    },
+    onDragLeave(event) {
+      if (event.currentTarget.contains(event.relatedTarget)) return
+      this.isDragOver = false
+    },
+    onDrop(event) {
+      if (this.importInProgress) return
+      this.isDragOver = false
+      const file = event.dataTransfer && event.dataTransfer.files[0]
+      if (file) {
+        this.setImportFile(file)
+      }
+    },
+    formatFileSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     },
     triggerFileInput() {
       if (this.importInProgress) return
@@ -365,31 +426,109 @@ input[type='file'] {
   display: none;
 }
 
-.custom-file-input {
-  padding: 8px;
-  border: 1px solid #ccc;
+.file-drop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  min-height: 110px;
+  border: 1px dashed #ccc;
   border-radius: 4px;
   font-size: 16px;
   background-color: #fff;
-  margin-bottom: 0;
-  margin-right: 0;
-  width: 100%;
   cursor: pointer;
   color: #333;
-  transition: border-color 0.2s;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
   user-select: none;
   box-sizing: border-box;
+  width: 100%;
 }
-.custom-file-input:hover {
+
+.file-drop:hover {
   border-color: #28a745;
+}
+
+.file-drop.empty {
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.file-drop.empty svg {
+  width: 24px;
+  height: 24px;
+}
+
+.file-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.3;
+}
+
+.file-hint-main {
+  font-size: 16px;
+  font-weight: 500;
   color: #333;
 }
-.custom-file-input.disabled {
+
+.file-hint-sub {
+  font-size: 14px;
+  color: #888;
+}
+
+.file-drop.is-dragover {
+  border-color: #28a745;
+  background-color: #f0faf3;
+}
+
+.file-drop.disabled {
   background-color: #f5f5f5;
   color: #333;
   opacity: 0.6;
   cursor: not-allowed;
   border-color: #eee;
+}
+
+.file-drop svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #666;
+}
+
+.file-drop .file-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.file-drop .file-size {
+  flex-shrink: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.file-drop .clear {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.file-drop .clear:hover {
+  background: none;
+  color: #333;
 }
 
 button[disabled] {
